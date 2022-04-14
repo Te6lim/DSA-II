@@ -21,7 +21,7 @@ public class WordNet {
 
     // constructor takes the name of the two input files
     public WordNet(String synSetsFileName, String hypernymFileName) {
-        validateInput(synSetsFileName == null, hypernymFileName == null);
+        validateInput(synSetsFileName != null, hypernymFileName != null);
 
         nouns = new ArrayList<>();
 
@@ -138,7 +138,7 @@ public class WordNet {
     }
 
     private void validateInput(boolean b, boolean b2) {
-        if (b || b2) throw new IllegalArgumentException();
+        if (!b || !b2) throw new IllegalArgumentException();
     }
 
     // returns all WordNet nouns
@@ -150,11 +150,17 @@ public class WordNet {
     }
 
     // distance between nounA and nounB (defined below)
-    public int distance(String nounA, String nounB) { return 0; }
+    public int distance(String nounA, String nounB) {
+        ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
+        HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
+
+        return getShortestLength(lengthsMap);
+    }
 
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
+        validateInput(isNoun(nounA), isNoun(nounB));
         ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
         HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
 
@@ -162,7 +168,7 @@ public class WordNet {
 
         int ancestor = getAncestorOfShortestLength(lengthsMap, shortestLength);
 
-        return getShortestAncestorString(ancestor);
+        if (ancestor != -1) return getShortestAncestorString(ancestor); else return null;
     }
 
     private String getShortestAncestorString(int ancestor) {
@@ -201,8 +207,10 @@ public class WordNet {
         for (int i : positionsOfA) {
             for (int j : positionsOfB) {
                 ancestor = findCommonAncestor(i, j);
-                length = childCount.get(ancestor);
-                addOrReplaceAncestorLength(lengthsMap, ancestor, length);
+                if (ancestor != -1) {
+                    length = childCount.get(ancestor);
+                    addOrReplaceAncestorLength(lengthsMap, ancestor, length);
+                }
             }
         }
         return lengthsMap;
@@ -243,26 +251,26 @@ public class WordNet {
                 if (!queueA.isEmpty()) {
                     current = queueA.dequeue();
                     if (hypernyms.get(current) != null) {
-                        int sy = getMarkedVertexOrEnqueue(b, queueA, current);
+                        int sy = getMarkedOrEnqueueNeighboursOfCurrent(b, queueA, current);
                         if (sy != -1) return sy;
                     }
-                } else if (queueB.isEmpty()) return rootPosition;
+                }
                 toA = false;
             } else {
                 if (!queueB.isEmpty()) {
                     current = queueB.dequeue();
                     if (hypernyms.get(current) != null) {
-                        int sy = getMarkedVertexOrEnqueue(a, queueB, current);
+                        int sy = getMarkedOrEnqueueNeighboursOfCurrent(a, queueB, current);
                         if (sy != -1) return sy;
                     }
-                } else if (queueA.isEmpty()) return rootPosition;
+                }
                 toA = true;
             }
         }
         return -1;
     }
 
-    private int getMarkedVertexOrEnqueue(int b, Queue<Integer> queueA, int current) {
+    private int getMarkedOrEnqueueNeighboursOfCurrent(int b, Queue<Integer> queueA, int current) {
         for (int sy : hypernyms.get(current)) {
             increaseChildCount(childCount, sy, current);
             if (isMarked(marker, sy) && sy != b) return sy;
@@ -292,8 +300,10 @@ public class WordNet {
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
                         "\\hypernyms.txt"
         );
+        String nounA = "run", nounB = "dash";
 
-        StdOut.println(wn.sap("sprint", "run"));
+        StdOut.println(wn.sap(nounA, nounB));
+        StdOut.println(wn.distance(nounA, nounB));
     }
 
 }
