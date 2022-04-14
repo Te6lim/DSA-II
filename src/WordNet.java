@@ -1,13 +1,18 @@
 import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.Queue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 
 public class WordNet {
 
     private final ArrayList<Bag<String>> synsets;
     private final ArrayList<Bag<Integer>> hypernyms;
+
+    HashMap<Integer, Boolean> marker = new HashMap<>();
+    HashMap<Integer, Integer> childCount = new HashMap<>();
 
     private final ArrayList<String> nouns;
 
@@ -25,6 +30,8 @@ public class WordNet {
         Collections.sort(nouns);
 
         if (!isRootDAG()) throw new IllegalArgumentException();
+
+        Collections.sort(nouns);
     }
 
     private ArrayList<Bag<String>> getSynSetsFromFileInput(String fileName) {
@@ -137,14 +144,139 @@ public class WordNet {
     public Iterable<String> nouns() { return nouns; }
 
     // is the word a WordNet noun?
-    public boolean isNoun(String word) { return false; }
+    public boolean isNoun(String word) {
+        return !(Collections.binarySearch(nouns, word) < 0);
+    }
 
     // distance between nounA and nounB (defined below)
     public int distance(String nounA, String nounB) { return 0; }
 
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
     // in a shortest ancestral path (defined below)
-    public String sap(String nounA, String nounB) { return null; }
+    public String sap(String nounA, String nounB) {
+        ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
+        HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromListOfVertices(positionsOfA, positionsOfB);
+
+        int shortestLength = getShortestLength(lengthsMap);
+
+        int ancestor = getAncestorOfShortestLength(lengthsMap, shortestLength);
+
+        return getShortestAncestorString(ancestor);
+    }
+
+    private String getShortestAncestorString(int ancestor) {
+        StringBuilder string = new StringBuilder();
+        for (String s : synsets.get(ancestor)) {
+            string.append(s);
+            string.append(" ");
+        }
+        string.deleteCharAt(string.length() - 1);
+        return string.toString();
+    }
+
+    private int getAncestorOfShortestLength(HashMap<Integer, Integer> lengthsMap, int shortestLength) {
+        for (int l : lengthsMap.keySet()) {
+            if (lengthsMap.get(l) == shortestLength) return l;
+        }
+        return -1;
+    }
+
+    private int getShortestLength(HashMap<Integer, Integer> lengthsMap) {
+        int shortestLength = -1;
+        for (int k : lengthsMap.values()) {
+            if (shortestLength != -1) {
+                if (k < shortestLength) shortestLength = k;
+            } else shortestLength = k;
+        }
+        return shortestLength;
+    }
+
+    private HashMap<Integer, Integer> createShortestAncestralPathsFromListOfVertices(
+            ArrayList<Integer> positionsOfA, ArrayList<Integer> positionsOfB
+    ) {
+        HashMap<Integer, Integer> lengthsMap = new HashMap<>();
+        int length;
+        int ancestor;
+        for (int i : positionsOfA) {
+            for (int j : positionsOfB) {
+                ancestor = findCommonAncestor(i, j);
+                length = childCount.get(ancestor);
+                addOrReplaceAncestorLength(lengthsMap, ancestor, length);
+            }
+        }
+        return lengthsMap;
+    }
+
+    private void addOrReplaceAncestorLength(HashMap<Integer, Integer> lengthsMap, int ancestor, int length) {
+        if (lengthsMap.containsKey(ancestor)) {
+            if (length < lengthsMap.get(ancestor)) lengthsMap.replace(ancestor, length);
+        } else lengthsMap.put(ancestor, length);
+    }
+
+    private ArrayList<Integer> getNounPositions(String noun) {
+        ArrayList<Integer> positions = new ArrayList<>();
+        for (int i = 0; i < synsets.size(); ++i) {
+            for (String s : synsets.get(i)) if (s.equals(noun)) positions.add(i);
+        }
+        return positions;
+    }
+
+    private int findCommonAncestor(int a, int b) {
+        Queue<Integer> queueA = new Queue<>();
+        Queue<Integer> queueB = new Queue<>();
+        marker = new HashMap<>();
+        childCount = new HashMap<>();
+
+        queueA.enqueue(a);
+        queueB.enqueue(b);
+        marker.put(a, true);
+        marker.put(b, true);
+        childCount.put(a, 0);
+        childCount.put(b, 0);
+
+        boolean toA = true;
+
+        int current;
+        while (true) {
+            if (toA) {
+                current = queueA.dequeue();
+                if (hypernyms.get(current) != null) {
+                    for (int sy : hypernyms.get(current)) {
+                        increaseChildCount(childCount, sy, current);
+                        if (isMarked(marker, sy) && sy != b) return sy;
+                        else {
+                            queueA.enqueue(sy);
+                            marker.put(sy, true);
+                        }
+                    }
+                }
+                toA = false;
+            } else {
+                current = queueB.dequeue();
+                if (hypernyms.get(current) != null) {
+                    for (int sy : hypernyms.get(current)) {
+                        increaseChildCount(childCount, sy, current);
+                        if (isMarked(marker, sy) && sy != a) return sy;
+                        else {
+                            queueB.enqueue(sy);
+                            marker.put(sy, true);
+                        }
+                    }
+                }
+                toA = true;
+            }
+        }
+    }
+
+    private boolean isMarked(HashMap<Integer, Boolean> marker, int sy) {
+        return marker.getOrDefault(sy, false);
+    }
+
+    private void increaseChildCount(HashMap<Integer, Integer> childCount, int parent, int child) {
+        if (childCount.containsKey(parent)) {
+            childCount.replace(parent, childCount.get(child) + childCount.get(parent) + 1);
+        } else childCount.put(parent, childCount.get(child) + 1);
+    }
 
     // do unit testing of this class
     public static void main(String[] args) {
