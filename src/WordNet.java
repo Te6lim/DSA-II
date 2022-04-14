@@ -1,6 +1,7 @@
 import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.Queue;
+import edu.princeton.cs.algs4.StdOut;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -155,7 +156,7 @@ public class WordNet {
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
         ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
-        HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromListOfVertices(positionsOfA, positionsOfB);
+        HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
 
         int shortestLength = getShortestLength(lengthsMap);
 
@@ -191,7 +192,7 @@ public class WordNet {
         return shortestLength;
     }
 
-    private HashMap<Integer, Integer> createShortestAncestralPathsFromListOfVertices(
+    private HashMap<Integer, Integer> createShortestAncestralPathsFromVertices(
             ArrayList<Integer> positionsOfA, ArrayList<Integer> positionsOfB
     ) {
         HashMap<Integer, Integer> lengthsMap = new HashMap<>();
@@ -237,35 +238,40 @@ public class WordNet {
         boolean toA = true;
 
         int current;
-        while (true) {
+        while (!queueA.isEmpty() || !queueB.isEmpty()) {
             if (toA) {
-                current = queueA.dequeue();
-                if (hypernyms.get(current) != null) {
-                    for (int sy : hypernyms.get(current)) {
-                        increaseChildCount(childCount, sy, current);
-                        if (isMarked(marker, sy) && sy != b) return sy;
-                        else {
-                            queueA.enqueue(sy);
-                            marker.put(sy, true);
-                        }
+                if (!queueA.isEmpty()) {
+                    current = queueA.dequeue();
+                    if (hypernyms.get(current) != null) {
+                        int sy = getMarkedVertexOrEnqueue(b, queueA, current);
+                        if (sy != -1) return sy;
                     }
-                }
+                } else if (queueB.isEmpty()) return rootPosition;
                 toA = false;
             } else {
-                current = queueB.dequeue();
-                if (hypernyms.get(current) != null) {
-                    for (int sy : hypernyms.get(current)) {
-                        increaseChildCount(childCount, sy, current);
-                        if (isMarked(marker, sy) && sy != a) return sy;
-                        else {
-                            queueB.enqueue(sy);
-                            marker.put(sy, true);
-                        }
+                if (!queueB.isEmpty()) {
+                    current = queueB.dequeue();
+                    if (hypernyms.get(current) != null) {
+                        int sy = getMarkedVertexOrEnqueue(a, queueB, current);
+                        if (sy != -1) return sy;
                     }
-                }
+                } else if (queueA.isEmpty()) return rootPosition;
                 toA = true;
             }
         }
+        return -1;
+    }
+
+    private int getMarkedVertexOrEnqueue(int b, Queue<Integer> queueA, int current) {
+        for (int sy : hypernyms.get(current)) {
+            increaseChildCount(childCount, sy, current);
+            if (isMarked(marker, sy) && sy != b) return sy;
+            else {
+                queueA.enqueue(sy);
+                marker.put(sy, true);
+            }
+        }
+        return -1;
     }
 
     private boolean isMarked(HashMap<Integer, Boolean> marker, int sy) {
@@ -286,6 +292,8 @@ public class WordNet {
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
                         "\\hypernyms.txt"
         );
+
+        StdOut.println(wn.sap("sprint", "run"));
     }
 
 }
