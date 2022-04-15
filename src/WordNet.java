@@ -254,21 +254,15 @@ public class WordNet {
             if (toA) {
                 if (!queueA.isEmpty()) {
                     current = queueA.dequeue();
-                    if (isMarked(current, false)) childCountB.replace(current, 0);
-                    if (hypernyms.get(current) != null) {
-                        int sy = getMarkedOrEnqueue(b, queueA, current, true);
-                        if (sy != -1) return sy;
-                    }
+                    int sy = getMarkedOrEnqueue(b, queueA, current, true);
+                    if (sy != -1) return sy;
                 }
                 toA = false;
             } else {
                 if (!queueB.isEmpty()) {
                     current = queueB.dequeue();
-                    if (isMarked(current, false)) childCountB.replace(current, 0);
-                    if (hypernyms.get(current) != null) {
-                        int sy = getMarkedOrEnqueue(a, queueB, current, false);
-                        if (sy != -1) return sy;
-                    }
+                    int sy = getMarkedOrEnqueue(a, queueB, current, false);
+                    if (sy != -1) return sy;
                 }
                 toA = true;
             }
@@ -277,17 +271,33 @@ public class WordNet {
     }
 
     private int getMarkedOrEnqueue(int root, Queue<Integer> queue, int current, boolean isA) {
-        for (int sy : hypernyms.get(current)) {
-            increaseChildCount(sy, current, isA);
-            if (isMarked(sy, !isA) && sy != root) {
-                return sy;
-            } else {
-                queue.enqueue(sy);
-                if (isA) markerA.put(sy, true);
-                else markerB.put(sy, true);
+        if (hypernyms.get(current) != null) {
+            for (int sy : hypernyms.get(current)) {
+                increaseChildCount(sy, current, isA);
+                if (isMarked(sy, !isA) && sy != root) {
+                    return sy;
+                } else {
+                    queue.enqueue(sy);
+                    if (isA) markerA.put(sy, true);
+                    else markerB.put(sy, true);
+
+                    if (sy == root) resetChildCountsToZero(isA);
+                }
             }
         }
         return -1;
+    }
+
+    private void resetChildCountsToZero(boolean isA) {
+        if (isA) {
+            for (int c : childCountB.keySet()) {
+                childCountB.replace(c, 0);
+            }
+        } else {
+            for (int c : childCountA.keySet()) {
+                childCountA.replace(c, 0);
+            }
+        }
     }
 
     private boolean isMarked(int sy, boolean isA) {
@@ -315,7 +325,7 @@ public class WordNet {
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
                         "\\hypernyms.txt"
         );
-        String nounA = "locomotion", nounB = "running";
+        String nounA = "action", nounB = "sprint";
 
         StdOut.println(wn.sap(nounA, nounB));
         StdOut.println(wn.distance(nounA, nounB));
