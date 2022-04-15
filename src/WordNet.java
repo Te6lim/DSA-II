@@ -254,8 +254,9 @@ public class WordNet {
             if (toA) {
                 if (!queueA.isEmpty()) {
                     current = queueA.dequeue();
+                    if (isMarked(current, false)) childCountB.replace(current, 0);
                     if (hypernyms.get(current) != null) {
-                        int sy = getMarkedOrEnqueueNeighboursOfCurrent(b, queueA, current, true);
+                        int sy = getMarkedOrEnqueue(b, queueA, current, true);
                         if (sy != -1) return sy;
                     }
                 }
@@ -263,8 +264,9 @@ public class WordNet {
             } else {
                 if (!queueB.isEmpty()) {
                     current = queueB.dequeue();
+                    if (isMarked(current, false)) childCountB.replace(current, 0);
                     if (hypernyms.get(current) != null) {
-                        int sy = getMarkedOrEnqueueNeighboursOfCurrent(a, queueB, current, false);
+                        int sy = getMarkedOrEnqueue(a, queueB, current, false);
                         if (sy != -1) return sy;
                     }
                 }
@@ -274,7 +276,7 @@ public class WordNet {
         return -1;
     }
 
-    private int getMarkedOrEnqueueNeighboursOfCurrent(int root, Queue<Integer> queue, int current, boolean isA) {
+    private int getMarkedOrEnqueue(int root, Queue<Integer> queue, int current, boolean isA) {
         for (int sy : hypernyms.get(current)) {
             increaseChildCount(sy, current, isA);
             if (isMarked(sy, !isA) && sy != root) {
