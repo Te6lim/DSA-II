@@ -16,7 +16,10 @@ public class SAP {
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
-    public int length(int v, int w) { return 0; }
+    public int length(int v, int w) {
+        int ancestor = ancestor(v, w);
+        return childCount.get(ancestor);
+    }
 
     // a common ancestor of v and w that participates in a shortest ancestral path; -1 if no such path
     public int ancestor(int v, int w) {
@@ -78,17 +81,64 @@ public class SAP {
         return marker.getOrDefault(x, false);
     }
 
-    private void increaseChildCount(int current, int x) {
-        if (childCount.containsKey(x)) {
-            childCount.replace(x, childCount.get(x) + childCount.get(current) + 1);
-        } else childCount.put(x, childCount.get(current) + 1);
+    private void increaseChildCount(int current, int next) {
+        if (childCount.containsKey(next)) {
+            childCount.replace(next, childCount.get(next) + childCount.get(current) + 1);
+        } else childCount.put(next, childCount.get(current) + 1);
     }
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
-    public int length(Iterable<Integer> v, Iterable<Integer> w) { return 0; }
+    public int length(Iterable<Integer> v, Iterable<Integer> w) {
+        HashMap<Integer, Integer> lengthMap = createMapOfShortestLengthAncestors(v, w);
+
+        return getShortestLength(lengthMap);
+    }
+
+    private int getShortestLength(HashMap<Integer, Integer> lengthMap) {
+        int shortestLength = -1;
+        for (int p : lengthMap.values()) {
+            if (shortestLength != -1) {
+                if (p < shortestLength) shortestLength = p;
+            } else shortestLength = p;
+        }
+        return shortestLength;
+    }
+
+    private HashMap<Integer, Integer> createMapOfShortestLengthAncestors(Iterable<Integer> v, Iterable<Integer> w) {
+        HashMap<Integer, Integer> lengthMap = new HashMap<>();
+        int ancestor;
+        int length;
+        for (int j : v) {
+            for (int k : w) {
+                ancestor = ancestor(j, k);
+                if (ancestor != -1) {
+                    length = childCount.get(ancestor);
+                    addShortestAncestralLengthToMap(lengthMap, length, ancestor);
+                }
+            }
+        }
+        return lengthMap;
+    }
+
+    private void addShortestAncestralLengthToMap(HashMap<Integer, Integer> lengthMap, int length, int ancestor) {
+        if (lengthMap.containsKey(ancestor)) {
+            if (length < lengthMap.get(ancestor)) lengthMap.replace(ancestor, length);
+        } else lengthMap.put(ancestor, length);
+    }
 
     // a common ancestor that participates in shortest ancestral path; -1 if no such path
-    public int ancestor(Iterable<Integer> v, Iterable<Integer> w) { return 0; }
+    public int ancestor(Iterable<Integer> v, Iterable<Integer> w) {
+        HashMap<Integer, Integer> lengthMap = createMapOfShortestLengthAncestors(v, w);
+        int shortestLength = getShortestLength(lengthMap);
+        return getShortestLengthAncestor(lengthMap, shortestLength);
+    }
+
+    private int getShortestLengthAncestor(HashMap<Integer, Integer> lengthMap, int shortestLength) {
+        for (int k : lengthMap.keySet()) {
+            if (lengthMap.get(k) == shortestLength) return k;
+        }
+        return -1;
+    }
 
     // do unit testing of this class
     public static void main(String[] args) {}
