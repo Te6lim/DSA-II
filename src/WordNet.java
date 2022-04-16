@@ -1,7 +1,4 @@
-import edu.princeton.cs.algs4.Bag;
-import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.Queue;
-import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -176,6 +173,17 @@ public class WordNet {
         if (ancestor != -1) return getShortestAncestorString(ancestor); else return null;
     }
 
+    private int getHypernymRelationship(int a, int b) {
+        for (int h : hypernyms.get(a)) {
+            if (h == b) return h;
+        }
+
+        for (int h : hypernyms.get(b)) {
+            if (h == a) return h;
+        }
+        return -1;
+    }
+
     private String getShortestAncestorString(int ancestor) {
         StringBuilder string = new StringBuilder();
         for (String s : synsets.get(ancestor)) {
@@ -211,10 +219,18 @@ public class WordNet {
         int ancestor;
         for (int i : positionsOfA) {
             for (int j : positionsOfB) {
+                int r = getHypernymRelationship(i, j);
                 ancestor = findCommonAncestor(i, j);
-                if (ancestor != -1) {
-                    length = childCount.get(ancestor);
+
+                if (r != -1) {
+                    ancestor = r;
+                    length = 1;
                     addOrReplaceAncestorLength(lengthsMap, ancestor, length);
+                } else {
+                    if (ancestor != -1) {
+                        length = childCount.get(ancestor);
+                        addOrReplaceAncestorLength(lengthsMap, ancestor, length);
+                    }
                 }
             }
         }
@@ -236,39 +252,25 @@ public class WordNet {
     }
 
     private int findCommonAncestor(int a, int b) {
-        Queue<Integer> queueA = new Queue<>();
-        Queue<Integer> queueB = new Queue<>();
+        Queue<Integer> queue = new Queue<>();
         marker = new HashMap<>();
         childCount = new HashMap<>();
 
-        queueA.enqueue(a);
-        queueB.enqueue(b);
+        queue.enqueue(a);
+        queue.enqueue(b);
         marker.put(a, true);
         marker.put(b, true);
         childCount.put(a, 0);
         childCount.put(b, 0);
 
-        boolean toA = true;
-
         int current;
-        while (!queueA.isEmpty() || !queueB.isEmpty()) {
-            if (toA) {
-                if (!queueA.isEmpty()) {
-                    current = queueA.dequeue();
-                    int sy = getMarkedOrEnqueue(queueA, current);
-                    if (sy != -1) return sy;
-                }
-                toA = false;
-            } else {
-                if (!queueB.isEmpty()) {
-                    current = queueB.dequeue();
-                    int sy = getMarkedOrEnqueue(queueB, current);
-                    if (sy != -1) return sy;
-                }
-                toA = true;
+        while (true) {
+            if (!queue.isEmpty()) {
+                current = queue.dequeue();
+                int sy = getMarkedOrEnqueue(queue, current);
+                if (sy != -1) return sy;
             }
         }
-        return -1;
     }
 
     private int getMarkedOrEnqueue(Queue<Integer> queue, int current) {
@@ -306,7 +308,7 @@ public class WordNet {
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
                         "\\hypernyms.txt"
         );
-        String nounA = "miracle", nounB = "miracle";
+        String nounA = "change", nounB = "motion";
 
         StdOut.println(wn.sap(nounA, nounB));
         StdOut.println(wn.distance(nounA, nounB));
