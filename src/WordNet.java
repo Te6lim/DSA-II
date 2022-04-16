@@ -12,10 +12,8 @@ public class WordNet {
     private final ArrayList<Bag<String>> synsets;
     private final ArrayList<Bag<Integer>> hypernyms;
 
-    private HashMap<Integer, Boolean> markerA;
-    private HashMap<Integer, Boolean> markerB;
-    private HashMap<Integer, Integer> childCountA;
-    private HashMap<Integer, Integer> childCountB;
+    private HashMap<Integer, Boolean> marker;
+    private HashMap<Integer, Integer> childCount;
 
     private final ArrayList<String> nouns;
 
@@ -153,6 +151,9 @@ public class WordNet {
 
     // distance between nounA and nounB (defined below)
     public int distance(String nounA, String nounB) {
+        validateInput(isNoun(nounA), isNoun(nounB));
+        if (nounA.equals(nounB)) return 0;
+
         ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
         HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
 
@@ -163,6 +164,8 @@ public class WordNet {
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
         validateInput(isNoun(nounA), isNoun(nounB));
+        if (nounA.equals(nounB)) return nounA;
+
         ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
         HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
 
@@ -210,7 +213,7 @@ public class WordNet {
             for (int j : positionsOfB) {
                 ancestor = findCommonAncestor(i, j);
                 if (ancestor != -1) {
-                    length = childCountA.get(ancestor) + childCountB.get(ancestor);
+                    length = childCount.get(ancestor);
                     addOrReplaceAncestorLength(lengthsMap, ancestor, length);
                 }
             }
@@ -235,17 +238,15 @@ public class WordNet {
     private int findCommonAncestor(int a, int b) {
         Queue<Integer> queueA = new Queue<>();
         Queue<Integer> queueB = new Queue<>();
-        markerA = new HashMap<>();
-        markerB = new HashMap<>();
-        childCountA = new HashMap<>();
-        childCountB = new HashMap<>();
+        marker = new HashMap<>();
+        childCount = new HashMap<>();
 
         queueA.enqueue(a);
         queueB.enqueue(b);
-        markerA.put(a, true);
-        markerB.put(b, true);
-        childCountA.put(a, 0);
-        childCountB.put(b, 0);
+        marker.put(a, true);
+        marker.put(b, true);
+        childCount.put(a, 0);
+        childCount.put(b, 0);
 
         boolean toA = true;
 
@@ -254,14 +255,14 @@ public class WordNet {
             if (toA) {
                 if (!queueA.isEmpty()) {
                     current = queueA.dequeue();
-                    int sy = getMarkedOrEnqueue(b, queueA, current, true);
+                    int sy = getMarkedOrEnqueue(queueA, current);
                     if (sy != -1) return sy;
                 }
                 toA = false;
             } else {
                 if (!queueB.isEmpty()) {
                     current = queueB.dequeue();
-                    int sy = getMarkedOrEnqueue(a, queueB, current, false);
+                    int sy = getMarkedOrEnqueue(queueB, current);
                     if (sy != -1) return sy;
                 }
                 toA = true;
@@ -270,50 +271,30 @@ public class WordNet {
         return -1;
     }
 
-    private int getMarkedOrEnqueue(int root, Queue<Integer> queue, int current, boolean isA) {
+    private int getMarkedOrEnqueue(Queue<Integer> queue, int current) {
         if (hypernyms.get(current) != null) {
             for (int sy : hypernyms.get(current)) {
-                increaseChildCount(sy, current, isA);
-                if (isMarked(sy, !isA) && sy != root) {
+                increaseChildCount(sy, current);
+                if (isMarked(sy)) {
                     return sy;
                 } else {
                     queue.enqueue(sy);
-                    if (isA) markerA.put(sy, true);
-                    else markerB.put(sy, true);
-
-                    if (sy == root) resetChildCountsToZero(isA);
+                    marker.put(sy, true);
                 }
             }
         }
         return -1;
     }
 
-    private void resetChildCountsToZero(boolean isA) {
-        if (isA) {
-            for (int c : childCountB.keySet()) {
-                childCountB.replace(c, 0);
-            }
-        } else {
-            for (int c : childCountA.keySet()) {
-                childCountA.replace(c, 0);
-            }
-        }
+    private boolean isMarked(int sy) {
+        return marker.getOrDefault(sy, false);
     }
 
-    private boolean isMarked(int sy, boolean isA) {
-        if (isA) return markerA.getOrDefault(sy, false);
-        return markerB.getOrDefault(sy, false);
-    }
-
-    private void increaseChildCount(int parent, int child, boolean isA) {
-        if (isA) {
-            if (!childCountA.containsKey(parent)) {
-                childCountA.put(parent, childCountA.get(child) + 1);
-            }
+    private void increaseChildCount(int parent, int child) {
+        if (!childCount.containsKey(parent)) {
+            childCount.put(parent, childCount.get(child) + 1);
         } else {
-            if (!childCountB.containsKey(parent)) {
-                childCountB.put(parent, childCountB.get(child) + 1);
-            }
+            childCount.replace(parent, childCount.get(parent) + childCount.get(child) + 1);
         }
     }
 
@@ -325,7 +306,7 @@ public class WordNet {
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
                         "\\hypernyms.txt"
         );
-        String nounA = "action", nounB = "sprint";
+        String nounA = "miracle", nounB = "miracle";
 
         StdOut.println(wn.sap(nounA, nounB));
         StdOut.println(wn.distance(nounA, nounB));
