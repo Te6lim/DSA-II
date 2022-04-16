@@ -105,14 +105,33 @@ public class SAP {
         int length;
         for (int j : v) {
             for (int k : w) {
+                int r = getHypernymRelationship(j , k);
                 ancestor = ancestor(j, k);
-                if (ancestor != -1) {
-                    length = childCount.get(ancestor);
+
+                if (r != -1) {
+                    ancestor = r;
+                    length = 1;
                     addShortestAncestralLengthToMap(lengthMap, length, ancestor);
+                } else {
+                    if (ancestor != -1) {
+                        length = childCount.get(ancestor);
+                        addShortestAncestralLengthToMap(lengthMap, length, ancestor);
+                    }
                 }
             }
         }
         return lengthMap;
+    }
+
+    private int getHypernymRelationship(int a, int b) {
+        for (int h : digraph.adj(a)) {
+            if (h == b) return h;
+        }
+
+        for (int h : digraph.adj(b)) {
+            if (h == a) return h;
+        }
+        return -1;
     }
 
     private void addShortestAncestralLengthToMap(HashMap<Integer, Integer> lengthMap, int length, int ancestor) {
