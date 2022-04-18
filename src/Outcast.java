@@ -1,6 +1,3 @@
-import edu.princeton.cs.algs4.StdOut;
-
-import java.util.ArrayList;
 
 public class Outcast {
 
@@ -27,7 +24,7 @@ public class Outcast {
 
     // see test client below
     public static void main(String[] args) {
-        WordNet wn = new WordNet(
+        /*WordNet wn = new WordNet(
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src\\" +
                         "\\synsets.txt",
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
@@ -40,7 +37,7 @@ public class Outcast {
 
         Outcast oc = new Outcast(wn);
         StdOut.println(nouns.size());
-        StdOut.println(oc.outcast(nouns.toArray(new String[0])));
+        StdOut.println(oc.outcast(nouns.toArray(new String[0])));*/
     }
 
 

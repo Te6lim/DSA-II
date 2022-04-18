@@ -1,4 +1,7 @@
-import edu.princeton.cs.algs4.*;
+import edu.princeton.cs.algs4.Bag;
+import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.Queue;
+import edu.princeton.cs.algs4.StdOut;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -143,6 +146,7 @@ public class WordNet {
 
     // is the word a WordNet noun?
     public boolean isNoun(String word) {
+        if (word == null) throw new IllegalArgumentException();
         return !(Collections.binarySearch(nouns, word) < 0);
     }
 
@@ -171,17 +175,6 @@ public class WordNet {
         int ancestor = getAncestorOfShortestLength(lengthsMap, shortestLength);
 
         if (ancestor != -1) return getShortestAncestorString(ancestor); else return null;
-    }
-
-    private int getHypernymRelationship(int a, int b) {
-        for (int h : hypernyms.get(a)) {
-            if (h == b) return h;
-        }
-
-        for (int h : hypernyms.get(b)) {
-            if (h == a) return h;
-        }
-        return -1;
     }
 
     private String getShortestAncestorString(int ancestor) {
@@ -219,18 +212,10 @@ public class WordNet {
         int ancestor;
         for (int i : positionsOfA) {
             for (int j : positionsOfB) {
-                int r = getHypernymRelationship(i, j);
                 ancestor = findCommonAncestor(i, j);
-
-                if (r != -1) {
-                    ancestor = r;
-                    length = 1;
+                if (ancestor != -1) {
+                    length = childCount.get(ancestor);
                     addOrReplaceAncestorLength(lengthsMap, ancestor, length);
-                } else {
-                    if (ancestor != -1) {
-                        length = childCount.get(ancestor);
-                        addOrReplaceAncestorLength(lengthsMap, ancestor, length);
-                    }
                 }
             }
         }
@@ -256,6 +241,9 @@ public class WordNet {
         marker = new HashMap<>();
         childCount = new HashMap<>();
 
+        int ancestor = connection(a, b);
+        if (ancestor != -1) return ancestor;
+
         queue.enqueue(a);
         queue.enqueue(b);
         marker.put(a, true);
@@ -271,6 +259,27 @@ public class WordNet {
                 if (sy != -1) return sy;
             }
         }
+    }
+
+    private int connection(int a, int b) {
+        if (!hypernyms.get(a).isEmpty()) {
+            for (int h : hypernyms.get(a)) {
+                if (h == b) {
+                    childCount.put(b, 1);
+                    return b;
+                }
+            }
+        }
+
+        if (!hypernyms.get(b).isEmpty()) {
+            for (int h : hypernyms.get(b)) {
+                if (h == a) {
+                    childCount.put(a, 1);
+                    return a;
+                }
+            }
+        }
+        return -1;
     }
 
     private int getMarkedOrEnqueue(Queue<Integer> queue, int current) {
@@ -308,7 +317,8 @@ public class WordNet {
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
                         "\\hypernyms.txt"
         );
-        String nounA = "change", nounB = "motion";
+
+        String nounA = "group_action", nounB = "action";
 
         StdOut.println(wn.sap(nounA, nounB));
         StdOut.println(wn.distance(nounA, nounB));
