@@ -165,7 +165,9 @@ public class WordNet {
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
         validateInput(isNoun(nounA), isNoun(nounB));
-        if (nounA.equals(nounB)) return nounA;
+        if (nounA.equals(nounB)) {
+            return nounA;
+        }
 
         ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
         HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
@@ -244,6 +246,11 @@ public class WordNet {
         int ancestor = connection(a, b);
         if (ancestor != -1) return ancestor;
 
+        if (a == b) {
+            childCount.put(a, 0);
+            return a;
+        }
+
         queue.enqueue(a);
         queue.enqueue(b);
         marker.put(a, true);
@@ -252,17 +259,16 @@ public class WordNet {
         childCount.put(b, 0);
 
         int current;
-        while (true) {
-            if (!queue.isEmpty()) {
-                current = queue.dequeue();
-                int sy = getMarkedOrEnqueue(queue, current);
-                if (sy != -1) return sy;
-            }
+        while (!queue.isEmpty()) {
+            current = queue.dequeue();
+            int sy = getMarkedOrEnqueue(queue, current);
+            if (sy != -1) return sy;
         }
+        return -1;
     }
 
     private int connection(int a, int b) {
-        if (!hypernyms.get(a).isEmpty()) {
+        if (hypernyms.get(a) != null) {
             for (int h : hypernyms.get(a)) {
                 if (h == b) {
                     childCount.put(b, 1);
@@ -271,7 +277,7 @@ public class WordNet {
             }
         }
 
-        if (!hypernyms.get(b).isEmpty()) {
+        if (hypernyms.get(b) != null) {
             for (int h : hypernyms.get(b)) {
                 if (h == a) {
                     childCount.put(a, 1);

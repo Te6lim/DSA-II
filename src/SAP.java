@@ -31,22 +31,40 @@ public class SAP {
         int ancestor = connection(v, w);
         if (ancestor != -1) return ancestor;
 
-        queue.enqueue(v);
-        queue.enqueue(w);
+        if (v == w) {
+            childCount.put(v, 0);
+            return v;
+        }
 
+        queue.enqueue(v);
         marker.put(v, true);
-        marker.put(w, true);
         childCount.put(v, 0);
+
+        queue.enqueue(w);
+        marker.put(w, true);
         childCount.put(w, 0);
 
         int current;
-        while (true) {
-            if (!queue.isEmpty()) {
-                current = queue.dequeue();
-                int x = getMarkedOrEnqueueNeighboursOfCurrent(queue, current);
-                if (x != -1) return x;
+        while (!queue.isEmpty()) {
+            current = queue.dequeue();
+            int x = getMarkedOrEnqueueNeighboursOfCurrent(queue, current);
+            if (x != -1) return x;
+        }
+        return -1;
+    }
+
+    private int getMarkedOrEnqueueNeighboursOfCurrent(Queue<Integer> queue, int current) {
+        if (digraph.outdegree(current) > 0) {
+            for (int x : digraph.adj(current)) {
+                increaseChildCount(x, current);
+                if (isMarked(x)) return x;
+                else {
+                    queue.enqueue(x);
+                    marker.put(x, true);
+                }
             }
         }
+        return -1;
     }
 
     private int connection(int v, int w) {
@@ -70,33 +88,25 @@ public class SAP {
         return -1;
     }
 
-    private int getMarkedOrEnqueueNeighboursOfCurrent(Queue<Integer> queue, int current) {
-        if (digraph.outdegree(current) > 0) {
-            for (int x : digraph.adj(current)) {
-                increaseChildCount(x, current);
-                if (isMarked(x)) return x;
-                else {
-                    queue.enqueue(x);
-                    marker.put(x, true);
-                }
-            }
-        }
-        return -1;
-    }
-
     private boolean isMarked(int x) {
         return marker.getOrDefault(x, false);
     }
 
     private void increaseChildCount(int parent, int child) {
         if (!childCount.containsKey(parent)) childCount.put(parent, childCount.get(child) + 1);
+        else childCount.replace(parent, childCount.get(parent) + childCount.get(child) + 1);
     }
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
     public int length(Iterable<Integer> v, Iterable<Integer> w) {
+        validate(v, w);
         HashMap<Integer, Integer> lengthMap = createMapOfShortestLengthAncestors(v, w);
 
         return getShortestLength(lengthMap);
+    }
+
+    private void validate(Iterable<Integer> v, Iterable<Integer> w) {
+        if (v == null || w == null) throw new IllegalArgumentException();
     }
 
     private int getShortestLength(HashMap<Integer, Integer> lengthMap) {
@@ -133,6 +143,7 @@ public class SAP {
 
     // a common ancestor that participates in shortest ancestral path; -1 if no such path
     public int ancestor(Iterable<Integer> v, Iterable<Integer> w) {
+        validate(v, w);
         HashMap<Integer, Integer> lengthMap = createMapOfShortestLengthAncestors(v, w);
         int shortestLength = getShortestLength(lengthMap);
         return getShortestLengthAncestor(lengthMap, shortestLength);
