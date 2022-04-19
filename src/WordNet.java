@@ -12,8 +12,10 @@ public class WordNet {
     private final ArrayList<Bag<String>> synsets;
     private final ArrayList<Bag<Integer>> hypernyms;
 
-    private HashMap<Integer, Boolean> marker;
-    private HashMap<Integer, Integer> childCount;
+    private HashMap<Integer, Boolean> markerA;
+    private HashMap<Integer, Boolean> markerB;
+    private HashMap<Integer, Integer> childCounterA;
+    private HashMap<Integer, Integer> childCounterB;
 
     private final ArrayList<String> nouns;
 
@@ -216,7 +218,7 @@ public class WordNet {
             for (int j : positionsOfB) {
                 ancestor = findCommonAncestor(i, j);
                 if (ancestor != -1) {
-                    length = childCount.get(ancestor);
+                    length = childCounterA.get(ancestor) + childCounterB.get(ancestor);
                     addOrReplaceAncestorLength(lengthsMap, ancestor, length);
                 }
             }
@@ -239,30 +241,48 @@ public class WordNet {
     }
 
     private int findCommonAncestor(int a, int b) {
-        Queue<Integer> queue = new Queue<>();
-        marker = new HashMap<>();
-        childCount = new HashMap<>();
+        Queue<Integer> queueA = new Queue<>();
+        Queue<Integer> queueB = new Queue<>();
+        markerA = new HashMap<>();
+        markerB = new HashMap<>();
+        childCounterA = new HashMap<>();
+        childCounterB = new HashMap<>();
 
         int ancestor = connection(a, b);
         if (ancestor != -1) return ancestor;
 
         if (a == b) {
-            childCount.put(a, 0);
+            childCounterA.put(a, 0);
+            childCounterB.put(b, 0);
             return a;
         }
 
-        queue.enqueue(a);
-        queue.enqueue(b);
-        marker.put(a, true);
-        marker.put(b, true);
-        childCount.put(a, 0);
-        childCount.put(b, 0);
+        queueA.enqueue(a);
+        queueB.enqueue(b);
+        markerA.put(a, true);
+        markerB.put(b, true);
+        childCounterA.put(a, 0);
+        childCounterB.put(b, 0);
+
+        boolean toA = true;
 
         int current;
-        while (!queue.isEmpty()) {
-            current = queue.dequeue();
-            int sy = getMarkedOrEnqueue(queue, current);
-            if (sy != -1) return sy;
+        while (!queueA.isEmpty() && !queueB.isEmpty()) {
+            if (toA) {
+                if (!queueA.isEmpty()) {
+                    current = queueA.dequeue();
+                    int sy = getMarkedOrEnqueue(queueA, markerA, childCounterA, current);
+                    if (sy != -1) return sy;
+                }
+                toA = false;
+            } else {
+                if (!queueB.isEmpty()) {
+                    current = queueB.dequeue();
+                    int sy = getMarkedOrEnqueue(queueB, markerB, childCounterB, current);
+                    if (sy != -1) return sy;
+                }
+                toA = true;
+            }
         }
         return -1;
     }
@@ -271,8 +291,9 @@ public class WordNet {
         if (hypernyms.get(a) != null) {
             for (int h : hypernyms.get(a)) {
                 if (h == b) {
-                    childCount.put(b, 1);
-                    return b;
+                    childCounterA.put(b, 0);
+                    childCounterB.put(b, 1);
+                    return h;
                 }
             }
         }
@@ -280,23 +301,26 @@ public class WordNet {
         if (hypernyms.get(b) != null) {
             for (int h : hypernyms.get(b)) {
                 if (h == a) {
-                    childCount.put(a, 1);
-                    return a;
+                    childCounterA.put(a, 1);
+                    childCounterB.put(a, 0);
+                    return h;
                 }
             }
         }
         return -1;
     }
 
-    private int getMarkedOrEnqueue(Queue<Integer> queue, int current) {
+    private int getMarkedOrEnqueue(
+            Queue<Integer> queue, HashMap<Integer, Boolean> marker, HashMap<Integer, Integer> childCounter, int current
+    ) {
         if (hypernyms.get(current) != null) {
             for (int sy : hypernyms.get(current)) {
-                increaseChildCount(sy, current);
+                increaseChildCount(childCounter, sy, current);
+                marker.put(sy, true);
                 if (isMarked(sy)) {
                     return sy;
                 } else {
                     queue.enqueue(sy);
-                    marker.put(sy, true);
                 }
             }
         }
@@ -304,14 +328,12 @@ public class WordNet {
     }
 
     private boolean isMarked(int sy) {
-        return marker.getOrDefault(sy, false);
+        return markerA.getOrDefault(sy, false) && markerB.getOrDefault(sy, false);
     }
 
-    private void increaseChildCount(int parent, int child) {
-        if (!childCount.containsKey(parent)) {
-            childCount.put(parent, childCount.get(child) + 1);
-        } else {
-            childCount.replace(parent, childCount.get(parent) + childCount.get(child) + 1);
+    private void increaseChildCount(HashMap<Integer, Integer> childCounter, int parent, int child) {
+        if (!childCounter.containsKey(parent)) {
+            childCounter.put(parent, childCounter.get(child) + 1);
         }
     }
 
