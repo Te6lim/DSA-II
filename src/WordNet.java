@@ -291,8 +291,8 @@ public class WordNet {
         if (hypernyms.get(a) != null) {
             for (int h : hypernyms.get(a)) {
                 if (h == b) {
-                    childCounterA.put(b, 0);
-                    childCounterB.put(b, 1);
+                    childCounterA.put(h, 0);
+                    childCounterB.put(h, 1);
                     return h;
                 }
             }
@@ -301,8 +301,8 @@ public class WordNet {
         if (hypernyms.get(b) != null) {
             for (int h : hypernyms.get(b)) {
                 if (h == a) {
-                    childCounterA.put(a, 1);
-                    childCounterB.put(a, 0);
+                    childCounterA.put(h, 1);
+                    childCounterB.put(h, 0);
                     return h;
                 }
             }
