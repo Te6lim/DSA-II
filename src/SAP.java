@@ -12,7 +12,14 @@ public class SAP {
 
     // constructor takes a digraph (not necessarily a DAG)
     public SAP(Digraph G) {
-        digraph = G;
+        digraph = new Digraph(G.V());
+        for (int e = 0; e < G.V(); ++e) {
+            if (G.outdegree(e) > 0) {
+                for (int n : G.adj(e)) {
+                    digraph.addEdge(e, n);
+                }
+            }
+        }
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
@@ -52,7 +59,7 @@ public class SAP {
                             if (!childCounterV.containsKey(sy)) increaseChildCount(childCounterV, sy, current);
                             if (!isMarked(markerV, sy)) mark(queueV, markerV, sy);
                             if (isMarked(markerW, sy)) {
-                                smallestCommonAncestor = getSmallestCommonAncestor(smallestCommonAncestor, sy);
+                                smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
                             }
                         }
                     }
@@ -66,7 +73,7 @@ public class SAP {
                             if (!childCounterW.containsKey(sy)) increaseChildCount(childCounterW, sy, current);
                             if (!isMarked(markerW, sy)) mark(queueW, markerW, sy);
                             if (isMarked(markerV, sy)) {
-                                smallestCommonAncestor = getSmallestCommonAncestor(smallestCommonAncestor, sy);
+                                smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
                             }
                         }
                     }
@@ -77,7 +84,7 @@ public class SAP {
         return smallestCommonAncestor;
     }
 
-    private int getSmallestCommonAncestor(int smallestCommonAncestor, int sy) {
+    private int getSmallestChildCountParent(int smallestCommonAncestor, int sy) {
         if (smallestCommonAncestor == -1) smallestCommonAncestor = sy;
         else {
             if (childCounterV.get(sy) + childCounterW.get(sy) <
@@ -111,6 +118,13 @@ public class SAP {
 
     private void validate(Iterable<Integer> v, Iterable<Integer> w) {
         if (v == null || w == null) throw new IllegalArgumentException();
+        for (Integer i : v) {
+            if (i == null) throw new IllegalArgumentException();
+        }
+
+        for (Integer i : w) {
+            if (i == null) throw new IllegalArgumentException();
+        }
     }
 
     private int getShortestLength(HashMap<Integer, Integer> lengthMap) {

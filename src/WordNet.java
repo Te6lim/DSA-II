@@ -134,15 +134,17 @@ public class WordNet {
     }
 
     private boolean isRootDAG() {
-        return rootPosition != null;
+         return rootPosition != null;
     }
 
     private void validateInput(boolean b, boolean b2) {
-        if (!b || !b2) throw new IllegalArgumentException();
+         if (!b || !b2) throw new IllegalArgumentException();
     }
 
     // returns all WordNet nouns
-    public Iterable<String> nouns() { return nouns; }
+    public Iterable<String> nouns() {
+        return nouns;
+    }
 
     // is the word a WordNet noun?
     public boolean isNoun(String word) {
@@ -165,11 +167,13 @@ public class WordNet {
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
         validateInput(isNoun(nounA), isNoun(nounB));
-        if (nounA.equals(nounB)) {
-            return nounA;
-        }
 
         ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
+
+        if (nounA.equals(nounB)) {
+            return getShortestAncestorString(positionsOfA.get(0));
+        }
+
         HashMap<Integer, Integer> lengthsMap = createShortestAncestralPathsFromVertices(positionsOfA, positionsOfB);
 
         int shortestLength = getShortestLength(lengthsMap);
