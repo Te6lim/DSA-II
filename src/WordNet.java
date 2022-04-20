@@ -12,8 +12,6 @@ public class WordNet {
     private final ArrayList<Bag<String>> synsets;
     private final ArrayList<Bag<Integer>> hypernyms;
 
-    private HashMap<Integer, Boolean> markerA;
-    private HashMap<Integer, Boolean> markerB;
     private HashMap<Integer, Integer> childCounterA;
     private HashMap<Integer, Integer> childCounterB;
 
@@ -226,6 +224,84 @@ public class WordNet {
         return lengthsMap;
     }
 
+    private int findCommonAncestor(int a, int b) {
+        Queue<Integer> queueA = new Queue<>();
+        HashMap<Integer, Boolean> markerA = new HashMap<>();
+        childCounterA = new HashMap<>();
+        mark(queueA, markerA, a);
+        childCounterA.put(a, 0);
+
+        Queue<Integer> queueB = new Queue<>();
+        HashMap<Integer, Boolean> markerB = new HashMap<>();
+        childCounterB = new HashMap<>();
+        mark(queueB, markerB, b);
+        childCounterB.put(b, 0);
+
+        if (a == b) return a;
+
+        int smallestCommonAncestor = -1;
+
+        boolean toA = true;
+
+        int current;
+        while (!queueA.isEmpty() || !queueB.isEmpty()) {
+            if (toA) {
+                if (!queueA.isEmpty()) {
+                    current = queueA.dequeue();
+                    if (hypernyms.get(current) != null) {
+                        for (int sy : hypernyms.get(current)) {
+                            if (!childCounterA.containsKey(sy)) increaseChildCount(childCounterA, sy, current);
+                            if (!isMarked(markerA, sy)) mark(queueA, markerA, sy);
+                            if (isMarked(markerB, sy)) {
+                                smallestCommonAncestor = getSmallestCommonAncestor(smallestCommonAncestor, sy);
+                            }
+                        }
+                    }
+                }
+                toA = false;
+            } else {
+                if (!queueB.isEmpty()) {
+                    current = queueB.dequeue();
+                    if (hypernyms.get(current) != null) {
+                        for (int sy : hypernyms.get(current)) {
+                            if (!childCounterB.containsKey(sy)) increaseChildCount(childCounterB, sy, current);
+                            if (!isMarked(markerB, sy)) mark(queueB, markerB, sy);
+                            if (isMarked(markerA, sy)) {
+                                smallestCommonAncestor = getSmallestCommonAncestor(smallestCommonAncestor, sy);
+                            }
+                        }
+                    }
+                }
+                toA = true;
+            }
+        }
+        return smallestCommonAncestor;
+    }
+
+    private int getSmallestCommonAncestor(int smallestCommonAncestor, int sy) {
+        if (smallestCommonAncestor == -1) smallestCommonAncestor = sy;
+        else {
+            if (childCounterA.get(sy) + childCounterB.get(sy) <
+                    childCounterA.get(smallestCommonAncestor) + childCounterB.get(smallestCommonAncestor)) {
+                smallestCommonAncestor = sy;
+            }
+        }
+        return smallestCommonAncestor;
+    }
+
+    private void mark(Queue<Integer> queue, HashMap<Integer, Boolean> marker, int position) {
+        queue.enqueue(position);
+        marker.put(position, true);
+    }
+
+    private boolean isMarked(HashMap<Integer, Boolean> marker, int sy) {
+        return marker.getOrDefault(sy, false);
+    }
+
+    private void increaseChildCount(HashMap<Integer, Integer> childCounter, int parent, int child) {
+        childCounter.put(parent, childCounter.get(child) + 1);
+    }
+
     private void addOrReplaceAncestorLength(HashMap<Integer, Integer> lengthsMap, int ancestor, int length) {
         if (lengthsMap.containsKey(ancestor)) {
             if (length < lengthsMap.get(ancestor)) lengthsMap.replace(ancestor, length);
@@ -238,103 +314,6 @@ public class WordNet {
             for (String s : synsets.get(i)) if (s.equals(noun)) positions.add(i);
         }
         return positions;
-    }
-
-    private int findCommonAncestor(int a, int b) {
-        Queue<Integer> queueA = new Queue<>();
-        Queue<Integer> queueB = new Queue<>();
-        markerA = new HashMap<>();
-        markerB = new HashMap<>();
-        childCounterA = new HashMap<>();
-        childCounterB = new HashMap<>();
-
-        int ancestor = connection(a, b);
-        if (ancestor != -1) return ancestor;
-
-        if (a == b) {
-            childCounterA.put(a, 0);
-            childCounterB.put(b, 0);
-            return a;
-        }
-
-        queueA.enqueue(a);
-        queueB.enqueue(b);
-        markerA.put(a, true);
-        markerB.put(b, true);
-        childCounterA.put(a, 0);
-        childCounterB.put(b, 0);
-
-        boolean toA = true;
-
-        int current;
-        while (!queueA.isEmpty() && !queueB.isEmpty()) {
-            if (toA) {
-                if (!queueA.isEmpty()) {
-                    current = queueA.dequeue();
-                    int sy = getMarkedOrEnqueue(queueA, markerA, childCounterA, current);
-                    if (sy != -1) return sy;
-                }
-                toA = false;
-            } else {
-                if (!queueB.isEmpty()) {
-                    current = queueB.dequeue();
-                    int sy = getMarkedOrEnqueue(queueB, markerB, childCounterB, current);
-                    if (sy != -1) return sy;
-                }
-                toA = true;
-            }
-        }
-        return -1;
-    }
-
-    private int connection(int a, int b) {
-        if (hypernyms.get(a) != null) {
-            for (int h : hypernyms.get(a)) {
-                if (h == b) {
-                    childCounterA.put(h, 0);
-                    childCounterB.put(h, 1);
-                    return h;
-                }
-            }
-        }
-
-        if (hypernyms.get(b) != null) {
-            for (int h : hypernyms.get(b)) {
-                if (h == a) {
-                    childCounterA.put(h, 1);
-                    childCounterB.put(h, 0);
-                    return h;
-                }
-            }
-        }
-        return -1;
-    }
-
-    private int getMarkedOrEnqueue(
-            Queue<Integer> queue, HashMap<Integer, Boolean> marker, HashMap<Integer, Integer> childCounter, int current
-    ) {
-        if (hypernyms.get(current) != null) {
-            for (int sy : hypernyms.get(current)) {
-                increaseChildCount(childCounter, sy, current);
-                marker.put(sy, true);
-                if (isMarked(sy)) {
-                    return sy;
-                } else {
-                    queue.enqueue(sy);
-                }
-            }
-        }
-        return -1;
-    }
-
-    private boolean isMarked(int sy) {
-        return markerA.getOrDefault(sy, false) && markerB.getOrDefault(sy, false);
-    }
-
-    private void increaseChildCount(HashMap<Integer, Integer> childCounter, int parent, int child) {
-        if (!childCounter.containsKey(parent)) {
-            childCounter.put(parent, childCounter.get(child) + 1);
-        }
     }
 
     // do unit testing of this class

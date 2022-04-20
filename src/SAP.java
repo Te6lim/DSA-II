@@ -7,8 +7,6 @@ public class SAP {
 
     private final Digraph digraph;
 
-    private HashMap<Integer, Boolean> markerV;
-    private HashMap<Integer, Boolean> markerW;
     private HashMap<Integer, Integer> childCounterV;
     private HashMap<Integer, Integer> childCounterW;
 
@@ -27,97 +25,80 @@ public class SAP {
     // a common ancestor of v and w that participates in a shortest ancestral path; -1 if no such path
     public int ancestor(int v, int w) {
         Queue<Integer> queueV = new Queue<>();
-        Queue<Integer> queueW = new Queue<>();
-        markerV = new HashMap<>();
-        markerW = new HashMap<>();
+        HashMap<Integer, Boolean> markerV = new HashMap<>();
         childCounterV = new HashMap<>();
-        childCounterW = new HashMap<>();
-
-        int ancestor = connection(v, w);
-        if (ancestor != -1) return ancestor;
-
-        if (v == w) {
-            childCounterV.put(v, 0);
-            childCounterW.put(w, 0);
-            return v;
-        }
-
-        queueV.enqueue(v);
-        markerV.put(v, true);
+        mark(queueV, markerV, v);
         childCounterV.put(v, 0);
 
-        queueW.enqueue(w);
-        markerW.put(w, true);
+        Queue<Integer> queueW = new Queue<>();
+        HashMap<Integer, Boolean> markerW = new HashMap<>();
+        childCounterW = new HashMap<>();
+        mark(queueW, markerW, w);
         childCounterW.put(w, 0);
 
-        boolean isV = true;
+        if (v == w) return v;
+
+        int smallestCommonAncestor = -1;
+
+        boolean toA = true;
 
         int current;
-        while (!queueV.isEmpty() && !queueW.isEmpty()) {
-            if (isV) {
+        while (!queueV.isEmpty() || !queueW.isEmpty()) {
+            if (toA) {
                 if (!queueV.isEmpty()) {
                     current = queueV.dequeue();
-                    int x = getMarkedOrEnqueueNeighboursOfCurrent(queueV, markerV, childCounterV, current);
-                    if (x != -1) return x;
+                    if (digraph.outdegree(current) > 0) {
+                        for (int sy : digraph.adj(current)) {
+                            if (!childCounterV.containsKey(sy)) increaseChildCount(childCounterV, sy, current);
+                            if (!isMarked(markerV, sy)) mark(queueV, markerV, sy);
+                            if (isMarked(markerW, sy)) {
+                                smallestCommonAncestor = getSmallestCommonAncestor(smallestCommonAncestor, sy);
+                            }
+                        }
+                    }
                 }
-                isV = false;
+                toA = false;
             } else {
                 if (!queueW.isEmpty()) {
                     current = queueW.dequeue();
-                    int x = getMarkedOrEnqueueNeighboursOfCurrent(queueW, markerW, childCounterW, current);
-                    if (x != -1) return x;
+                    if (digraph.outdegree(current) > 0) {
+                        for (int sy : digraph.adj(current)) {
+                            if (!childCounterW.containsKey(sy)) increaseChildCount(childCounterW, sy, current);
+                            if (!isMarked(markerW, sy)) mark(queueW, markerW, sy);
+                            if (isMarked(markerV, sy)) {
+                                smallestCommonAncestor = getSmallestCommonAncestor(smallestCommonAncestor, sy);
+                            }
+                        }
+                    }
                 }
-                isV = true;
+                toA = true;
             }
         }
-        return -1;
+        return smallestCommonAncestor;
     }
 
-    private int getMarkedOrEnqueueNeighboursOfCurrent(
-            Queue<Integer> queue, HashMap<Integer, Boolean> marker, HashMap<Integer, Integer> childCounter, int current
-    ) {
-        if (digraph.outdegree(current) > 0) {
-            for (int x : digraph.adj(current)) {
-                increaseChildCount(childCounter, x, current);
-                marker.put(x, true);
-                if (isMarked(x)) return x;
-                else {
-                    queue.enqueue(x);
-                }
+    private int getSmallestCommonAncestor(int smallestCommonAncestor, int sy) {
+        if (smallestCommonAncestor == -1) smallestCommonAncestor = sy;
+        else {
+            if (childCounterV.get(sy) + childCounterW.get(sy) <
+                    childCounterV.get(smallestCommonAncestor) + childCounterW.get(smallestCommonAncestor)) {
+                smallestCommonAncestor = sy;
             }
         }
-        return -1;
+        return smallestCommonAncestor;
     }
 
-    private int connection(int v, int w) {
-        if (digraph.outdegree(v) != 0) {
-            for (int h : digraph.adj(v)) {
-                if (h == w) {
-                    childCounterV.put(h, 0);
-                    childCounterW.put(h, 1);
-                    return h;
-                }
-            }
-        }
-
-        if (digraph.outdegree(w) != 0) {
-            for (int h : digraph.adj(w)) {
-                if (h == v) {
-                    childCounterV.put(h, 1);
-                    childCounterW.put(h, 0);
-                    return h;
-                }
-            }
-        }
-        return -1;
+    private void mark(Queue<Integer> queue, HashMap<Integer, Boolean> marker, int position) {
+        queue.enqueue(position);
+        marker.put(position, true);
     }
 
-    private boolean isMarked(int x) {
-        return markerV.getOrDefault(x, false) && markerW.getOrDefault(x, false);
+    private boolean isMarked(HashMap<Integer, Boolean> marker, int sy) {
+        return marker.getOrDefault(sy, false);
     }
 
     private void increaseChildCount(HashMap<Integer, Integer> childCounter, int parent, int child) {
-        if (!childCounter.containsKey(parent)) childCounter.put(parent, childCounter.get(child) + 1);
+        childCounter.put(parent, childCounter.get(child) + 1);
     }
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
