@@ -49,14 +49,14 @@ public class WordNet {
         Bag<String> words;
         char last = pointOfExtraction(file);
         if (last != '\u0000' && file.hasNextChar()) {
-            words = getBagOfSynonyms(file, file.readChar());
+            words = getBagOfSynonyms(file, last);
             synSets.add(words);
         }
     }
 
     private char pointOfExtraction(In synsetFile) {
         char character = '\u0000';
-        while (synsetFile.hasNextChar()) {
+        while (character != '\r' && character != '\n') {
             character = synsetFile.readChar();
             if (character == ',') return character;
         }
@@ -67,6 +67,12 @@ public class WordNet {
         StringBuilder word = new StringBuilder();
         String wordString;
         Bag<String> wordBag = new Bag<>();
+
+        try {
+            c = file.readChar();
+        } catch (Exception e) {
+            return wordBag;
+        }
         while (c != ',') {
             if (c != ' ') word.append(c);
             else {
@@ -75,21 +81,17 @@ public class WordNet {
                 word = new StringBuilder();
                 nouns.add(wordString);
             }
-            try {
-                c = file.readChar();
-                if (c == '\n') break;
-            } catch (Exception e) {
-                throw  e;
-            }
+            c = file.readChar();
             /*/
             if (++index == line.length()) break;
             c = line.charAt(index);*/
         }
-        if (word.length() != 0) {
+        /*if (word.length() != 0) {
             wordString = word.toString();
             wordBag.add(wordString);
             nouns.add(wordString);
-        }
+        }*/
+        while (c != '\r') c = file.readChar();
         return wordBag;
     }
 
@@ -102,9 +104,12 @@ public class WordNet {
 
         int counter = 0;
         while (hypernymFile.hasNextChar()) {
+            if (counter == 38003) {
+                int u = 0;
+            }
             c = pointOfExtraction(hypernymFile);
             if (c != '\u0000' && hypernymFile.hasNextChar()) {
-                synsetReferences = getBagOfSynSetReferences(hypernymFile, hypernymFile.readChar());
+                synsetReferences = getBagOfSynSetReferences(hypernymFile, c);
                 if (synsetReferences != null) {
                     addReferencesToEdge(synsetReferences, digraph, counter);
                 }
@@ -120,17 +125,25 @@ public class WordNet {
         bagOfSynsets = new Bag<>();
 
         StringBuilder referenceToSynSet = new StringBuilder();
-        while (file.hasNextChar() && c != '\n') {
-            if (c != ',') referenceToSynSet.append(c);
+        while (c != '\n') {
+            if (c != ',' && c != '\r' && c != '\u0000')
+                referenceToSynSet.append(c);
             else {
-                bagOfSynsets.add(Integer.parseInt(referenceToSynSet.toString()));
+                if (referenceToSynSet.length() != 0)
+                    bagOfSynsets.add(Integer.parseInt(referenceToSynSet.toString()));
                 referenceToSynSet = new StringBuilder();
             }
-            c = file.readChar();
+            try {
+                c = file.readChar();
+            } catch (Exception e) {
+                break;
+            }
         }
-        if (referenceToSynSet.length() != 0) bagOfSynsets.add(Integer.parseInt(referenceToSynSet.toString()));
+        //if (referenceToSynSet.length() != 0) bagOfSynsets.add(Integer.parseInt(referenceToSynSet.toString()));
 
-        if (bagOfSynsets.isEmpty()) return null; else return bagOfSynsets;
+        if (bagOfSynsets.isEmpty())
+            return null;
+        else return bagOfSynsets;
     }
 
     private void addReferencesToEdge(Bag<Integer> synsetReferences, Digraph digraph, int counter) {
