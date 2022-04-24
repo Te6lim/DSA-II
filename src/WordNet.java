@@ -27,7 +27,7 @@ public class WordNet {
 
         nouns = getNouns();
 
-        getNouns();
+        Collections.sort(nouns);
 
         sap = new SAP(wordDigraph);
     }
@@ -36,9 +36,8 @@ public class WordNet {
         ArrayList<String> listOfNouns = new ArrayList<>();
         for (Bag<String> b : synsets) {
             for (String s : b) {
-                if (Collections.binarySearch(listOfNouns, s) < 0) {
+                if (!listOfNouns.contains(s)) {
                     listOfNouns.add(s);
-                    Collections.sort(listOfNouns);
                 }
             }
         }
