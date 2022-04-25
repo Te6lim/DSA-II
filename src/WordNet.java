@@ -6,11 +6,11 @@ import edu.princeton.cs.algs4.DirectedCycle;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.NoSuchElementException;
 
 public class WordNet {
 
     private final ArrayList<Bag<String>> synsets;
-    private final Digraph wordDigraph;
 
     private final SAP sap;
 
@@ -21,9 +21,10 @@ public class WordNet {
         validateInput(synSetsFileName != null, hypernymFileName != null);
 
         synsets = getSynSetsFromFileInput(synSetsFileName);
-        wordDigraph = getHypernymDigraph(hypernymFileName);
 
-        if (!isRootDAG()) throw new IllegalArgumentException();
+        Digraph wordDigraph = getHypernymDigraph(hypernymFileName, synsets);
+
+        if (!isRootDAG(wordDigraph)) throw new IllegalArgumentException();
 
         nouns = getNouns();
 
@@ -52,6 +53,7 @@ public class WordNet {
             addWordsToSynSetsFromFile(synSetFile, synSets);
         }
 
+        synSetFile.close();
         return synSets;
     }
 
@@ -95,22 +97,22 @@ public class WordNet {
         while (c != '\r') {
             try {
                 c = file.readChar();
-            } catch (Exception e) {
+            } catch (NoSuchElementException e) {
                 break;
             }
         }
         return wordBag;
     }
 
-    private Digraph getHypernymDigraph(String fileName) {
+    private Digraph getHypernymDigraph(String fileName, ArrayList<Bag<String>> synsetList) {
         In hypernymFile = new In(fileName);
         char c;
         Bag<Integer> synsetReferences;
 
-        Digraph digraph = new Digraph(synsets.size());
+        Digraph digraph = new Digraph(synsetList.size());
 
         int counter = 0;
-        while (hypernymFile.hasNextChar()) {
+        while (counter < synsetList.size()) {
             c = pointOfExtraction(hypernymFile);
             if (c != '\u0000') {
                 synsetReferences = getBagOfSynSetReferences(hypernymFile);
@@ -121,6 +123,7 @@ public class WordNet {
             ++counter;
         }
 
+        hypernymFile.close();
         return digraph;
     }
 
@@ -141,7 +144,7 @@ public class WordNet {
             }
             try {
                 c = file.readChar();
-            } catch (Exception e) {
+            } catch (NoSuchElementException e) {
                 break;
             }
         }
@@ -158,13 +161,13 @@ public class WordNet {
         }
     }
 
-    private boolean isRootDAG() {
-        DirectedCycle cycle = new DirectedCycle(wordDigraph);
+    private boolean isRootDAG(Digraph digraph) {
+        DirectedCycle cycle = new DirectedCycle(digraph);
         return !cycle.hasCycle();
     }
 
     private void validateInput(boolean b, boolean b2) {
-         if (!b || !b2) throw new IllegalArgumentException();
+        if (!b || !b2) throw new IllegalArgumentException();
     }
 
     // returns all WordNet nouns
@@ -229,7 +232,7 @@ public class WordNet {
                         "\\hypernyms.txt"
         );
 
-        String nounA = "group_action", nounB = "action";
+        String nounA = "transition", nounB = "miracle";
 
         StdOut.println(wn.sap(nounA, nounB));
         StdOut.println(wn.distance(nounA, nounB));
