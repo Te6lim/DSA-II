@@ -13,9 +13,9 @@ public class Outcast {
         int[] distances = new int[nouns.length];
         int largestNounIndex = 0;
         for (int i = 0; i < nouns.length; ++i) {
-            for (int j = i + 1; j < nouns.length; ++j) {
-                if (nouns[i].equals(nouns[j])) distances[i] += 0;
-                else distances[i] += wn.distance(nouns[i], nouns[j]);
+            for (String noun : nouns) {
+                if (nouns[i].equals(noun)) distances[i] += 0;
+                else distances[i] += wn.distance(nouns[i], noun);
             }
             if (distances[i] > distances[largestNounIndex]) largestNounIndex = i;
         }

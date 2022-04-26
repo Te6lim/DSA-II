@@ -1,4 +1,3 @@
-import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
@@ -6,159 +5,93 @@ import edu.princeton.cs.algs4.DirectedCycle;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.NoSuchElementException;
+import java.util.HashMap;
 
 public class WordNet {
 
-    private final ArrayList<Bag<String>> synsets;
+    private final ArrayList<String[]> synsets;
 
     private final SAP sap;
 
     private final ArrayList<String> nouns;
 
+    private final HashMap<String, ArrayList<Integer>> nounPositions;
+
     // constructor takes the name of the two input files
     public WordNet(String synSetsFileName, String hypernymFileName) {
         validateInput(synSetsFileName != null, hypernymFileName != null);
 
-        synsets = getSynSetsFromFileInput(synSetsFileName);
+        nounPositions = new HashMap<>();
 
+        synsets = getSynSetsFromFileInput(synSetsFileName);
         Digraph wordDigraph = getHypernymDigraph(hypernymFileName, synsets);
 
         if (!isRootDAG(wordDigraph)) throw new IllegalArgumentException();
 
-        nouns = getNouns();
-
-        Collections.sort(nouns);
-
         sap = new SAP(wordDigraph);
+
+        nouns = getNouns(synsets);
     }
 
-    private ArrayList<String> getNouns() {
-        ArrayList<String> listOfNouns = new ArrayList<>();
-        for (Bag<String> b : synsets) {
-            for (String s : b) {
-                if (!listOfNouns.contains(s)) {
-                    listOfNouns.add(s);
-                }
-            }
-        }
-        return listOfNouns;
-    }
-
-    private ArrayList<Bag<String>> getSynSetsFromFileInput(String fileName) {
+    private ArrayList<String[]> getSynSetsFromFileInput(String fileName) {
         In synSetFile = new In(fileName);
-        ArrayList<Bag<String>> synSets = new ArrayList<>();
+        ArrayList<String[]> synSets = new ArrayList<>();
 
-        while (synSetFile.hasNextChar()) {
-            addWordsToSynSetsFromFile(synSetFile, synSets);
-        }
+        while (synSetFile.hasNextLine()) addWordsToSynSetsFromFile(synSetFile, synSets);
 
-        synSetFile.close();
         return synSets;
     }
 
-    private void addWordsToSynSetsFromFile(In file, ArrayList<Bag<String>> synSets) {
-        Bag<String> words;
-        char last = pointOfExtraction(file);
-        if (last != '\u0000') {
-            words = getBagOfSynonyms(file);
-            synSets.add(words);
-        }
+    private void addWordsToSynSetsFromFile(In synSetFile, ArrayList<String[]> synSets) {
+        String line = synSetFile.readLine();
+
+        String[] x = line.split(",", 2);
+        String[] y = x[1].split(",", 2);
+        String[] z = y[0].split(" ");
+
+        synSets.add(z);
     }
 
-    private char pointOfExtraction(In file) {
-        char character = '\u0000';
-        while (character != '\r') {
-            character = file.readChar();
-            if (character == ',') return character;
-        }
-        return character;
-    }
-
-    private Bag<String> getBagOfSynonyms(In file) {
-        StringBuilder word = new StringBuilder();
-        String wordString;
-        Bag<String> wordBag = new Bag<>();
-
-        char c = file.readChar();
-        while (c != ',') {
-            if (c != ' ') word.append(c);
-            else {
-                wordString = word.toString();
-                wordBag.add(wordString);
-                word = new StringBuilder();
-            }
-            c = file.readChar();
-        }
-        if (word.length() != 0) {
-            wordString = word.toString();
-            wordBag.add(wordString);
-        }
-        while (c != '\r') {
-            try {
-                c = file.readChar();
-            } catch (NoSuchElementException e) {
-                break;
-            }
-        }
-        return wordBag;
-    }
-
-    private Digraph getHypernymDigraph(String fileName, ArrayList<Bag<String>> synsetList) {
+    private Digraph getHypernymDigraph(String fileName, ArrayList<String[]> parameterSynsets) {
         In hypernymFile = new In(fileName);
-        char c;
-        Bag<Integer> synsetReferences;
 
-        Digraph digraph = new Digraph(synsetList.size());
+        String line;
+        int[] synsetReferences;
+
+        Digraph digraph = new Digraph(parameterSynsets.size());
 
         int counter = 0;
-        while (counter < synsetList.size()) {
-            c = pointOfExtraction(hypernymFile);
-            if (c != '\u0000') {
-                synsetReferences = getBagOfSynSetReferences(hypernymFile);
-                if (synsetReferences != null) {
-                    addReferencesToEdge(synsetReferences, digraph, counter);
-                }
+        while (hypernymFile.hasNextLine()) {
+            line = hypernymFile.readLine();
+            synsetReferences = getBagOfSynSetReferences(line);
+            if (synsetReferences != null) {
+                addReferencesToEdge(synsetReferences, digraph, counter);
             }
             ++counter;
         }
 
-        hypernymFile.close();
         return digraph;
     }
 
-    private Bag<Integer> getBagOfSynSetReferences(In file) {
-        Bag<Integer> bagOfSynsets;
-        bagOfSynsets = new Bag<>();
-
-        StringBuilder referenceToSynSet = new StringBuilder();
-
-        char c = file.readChar();
-        while (c != '\r' && c != '\n') {
-            if (c != ',' && c != '\u0000')
-                referenceToSynSet.append(c);
-            else {
-                if (referenceToSynSet.length() != 0)
-                    bagOfSynsets.add(Integer.parseInt(referenceToSynSet.toString()));
-                referenceToSynSet = new StringBuilder();
-            }
-            try {
-                c = file.readChar();
-            } catch (NoSuchElementException e) {
-                break;
-            }
-        }
-        if (referenceToSynSet.length() != 0) bagOfSynsets.add(Integer.parseInt(referenceToSynSet.toString()));
-
-        if (bagOfSynsets.isEmpty())
-            return null;
-        else return bagOfSynsets;
-    }
-
-    private void addReferencesToEdge(Bag<Integer> synsetReferences, Digraph digraph, int counter) {
+    private void addReferencesToEdge(int[] synsetReferences, Digraph digraph, int counter) {
         for (int sy : synsetReferences) {
             digraph.addEdge(counter, sy);
         }
+    }
+
+    private int[] getBagOfSynSetReferences(String line) {
+        int[] arrayOfSynsets = null;
+
+        String[] x = line.split(",");
+
+        if (x.length > 1) {
+            arrayOfSynsets = new int[x.length - 1];
+            for (int i = 1; i < x.length; ++i) {
+                arrayOfSynsets[i - 1] = Integer.parseInt(x[i]);
+            }
+        }
+
+        return arrayOfSynsets;
     }
 
     private boolean isRootDAG(Digraph digraph) {
@@ -167,12 +100,31 @@ public class WordNet {
     }
 
     private void validateInput(boolean b, boolean b2) {
-        if (!b || !b2) throw new IllegalArgumentException();
+         if (!b || !b2) throw new IllegalArgumentException();
     }
 
     // returns all WordNet nouns
     public Iterable<String> nouns() {
         return nouns;
+    }
+
+    private ArrayList<String> getNouns(ArrayList<String[]> parameterSynsets) {
+        ArrayList<String> localNouns = new ArrayList<>();
+        ArrayList<Integer> positions;
+
+        for (int i = 0; i < parameterSynsets.size(); ++i) {
+            for (String s : parameterSynsets.get(i)) {
+                if (nounPositions.get(s) == null) {
+                    localNouns.add(s);
+                    positions = new ArrayList<>();
+                    positions.add(i);
+                    nounPositions.put(s, positions);
+                } else nounPositions.get(s).add(i);
+            }
+        }
+
+        Collections.sort(localNouns);
+        return localNouns;
     }
 
     // is the word a WordNet noun?
@@ -186,7 +138,7 @@ public class WordNet {
         validateInput(isNoun(nounA), isNoun(nounB));
         if (nounA.equals(nounB)) return 0;
 
-        ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
+        ArrayList<Integer> positionsOfA = nounPositions.get(nounA), positionsOfB = nounPositions.get(nounB);
 
         return sap.length(positionsOfA, positionsOfB);
     }
@@ -196,7 +148,7 @@ public class WordNet {
     public String sap(String nounA, String nounB) {
         validateInput(isNoun(nounA), isNoun(nounB));
 
-        ArrayList<Integer> positionsOfA = getNounPositions(nounA), positionsOfB = getNounPositions(nounB);
+        ArrayList<Integer> positionsOfA = nounPositions.get(nounA), positionsOfB = nounPositions.get(nounB);
 
         if (nounA.equals(nounB)) return getShortestAncestorString(positionsOfA.get(0));
 
@@ -215,14 +167,6 @@ public class WordNet {
         return string.toString();
     }
 
-    private ArrayList<Integer> getNounPositions(String noun) {
-        ArrayList<Integer> positions = new ArrayList<>();
-        for (int i = 0; i < synsets.size(); ++i) {
-            for (String s : synsets.get(i)) if (s.equals(noun)) positions.add(i);
-        }
-        return positions;
-    }
-
     // do unit testing of this class
     public static void main(String[] args) {
         WordNet wn = new WordNet(
@@ -232,7 +176,7 @@ public class WordNet {
                         "\\hypernyms.txt"
         );
 
-        String nounA = "transition", nounB = "miracle";
+        String nounA = "group_action", nounB = "action";
 
         StdOut.println(wn.sap(nounA, nounB));
         StdOut.println(wn.distance(nounA, nounB));

@@ -34,13 +34,13 @@ public class SAP {
         Queue<Integer> queueV = new Queue<>();
         HashMap<Integer, Boolean> markerV = new HashMap<>();
         childCounterV = new HashMap<>();
-        mark(queueV, markerV, v);
+        markAndEnqueue(queueV, markerV, v);
         childCounterV.put(v, 0);
 
         Queue<Integer> queueW = new Queue<>();
         HashMap<Integer, Boolean> markerW = new HashMap<>();
         childCounterW = new HashMap<>();
-        mark(queueW, markerW, w);
+        markAndEnqueue(queueW, markerW, w);
         childCounterW.put(w, 0);
 
         if (v == w) return v;
@@ -57,7 +57,7 @@ public class SAP {
                     if (digraph.outdegree(current) > 0) {
                         for (int sy : digraph.adj(current)) {
                             if (!childCounterV.containsKey(sy)) increaseChildCount(childCounterV, sy, current);
-                            if (!isMarked(markerV, sy)) mark(queueV, markerV, sy);
+                            if (!isMarked(markerV, sy)) markAndEnqueue(queueV, markerV, sy);
                             if (isMarked(markerW, sy)) {
                                 smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
                             }
@@ -71,7 +71,7 @@ public class SAP {
                     if (digraph.outdegree(current) > 0) {
                         for (int sy : digraph.adj(current)) {
                             if (!childCounterW.containsKey(sy)) increaseChildCount(childCounterW, sy, current);
-                            if (!isMarked(markerW, sy)) mark(queueW, markerW, sy);
+                            if (!isMarked(markerW, sy)) markAndEnqueue(queueW, markerW, sy);
                             if (isMarked(markerV, sy)) {
                                 smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
                             }
@@ -95,7 +95,7 @@ public class SAP {
         return smallestCommonAncestor;
     }
 
-    private void mark(Queue<Integer> queue, HashMap<Integer, Boolean> marker, int position) {
+    private void markAndEnqueue(Queue<Integer> queue, HashMap<Integer, Boolean> marker, int position) {
         queue.enqueue(position);
         marker.put(position, true);
     }
