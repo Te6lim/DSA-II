@@ -15,9 +15,7 @@ public class SAP {
         digraph = new Digraph(G.V());
         for (int e = 0; e < G.V(); ++e) {
             if (G.outdegree(e) > 0) {
-                for (int n : G.adj(e)) {
-                    digraph.addEdge(e, n);
-                }
+                for (int n : G.adj(e)) { digraph.addEdge(e, n); }
             }
         }
     }
@@ -51,34 +49,30 @@ public class SAP {
 
         int current;
         while (!queueV.isEmpty() || !queueW.isEmpty()) {
-            if (toA) {
-                if (!queueV.isEmpty()) {
-                    current = queueV.dequeue();
-                    if (digraph.outdegree(current) > 0) {
-                        for (int sy : digraph.adj(current)) {
-                            if (!childCounterV.containsKey(sy)) increaseChildCount(childCounterV, sy, current);
-                            if (!isMarked(markerV, sy)) markAndEnqueue(queueV, markerV, sy);
-                            if (isMarked(markerW, sy)) {
-                                smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
-                            }
+            if (toA && !queueV.isEmpty()) {
+                current = queueV.dequeue();
+                if (digraph.outdegree(current) > 0) {
+                    for (int sy : digraph.adj(current)) {
+                        increaseChildCount(childCounterV, sy, current);
+                        if (!isMarked(markerV, sy)) markAndEnqueue(queueV, markerV, sy);
+                        if (isMarked(markerW, sy)) {
+                            smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
                         }
                     }
                 }
-                toA = false;
+                toA = queueW.isEmpty();
             } else {
-                if (!queueW.isEmpty()) {
-                    current = queueW.dequeue();
-                    if (digraph.outdegree(current) > 0) {
-                        for (int sy : digraph.adj(current)) {
-                            if (!childCounterW.containsKey(sy)) increaseChildCount(childCounterW, sy, current);
-                            if (!isMarked(markerW, sy)) markAndEnqueue(queueW, markerW, sy);
-                            if (isMarked(markerV, sy)) {
-                                smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
-                            }
+                current = queueW.dequeue();
+                if (digraph.outdegree(current) > 0) {
+                    for (int sy : digraph.adj(current)) {
+                        increaseChildCount(childCounterW, sy, current);
+                        if (!isMarked(markerW, sy)) markAndEnqueue(queueW, markerW, sy);
+                        if (isMarked(markerV, sy)) {
+                            smallestCommonAncestor = getSmallestChildCountParent(smallestCommonAncestor, sy);
                         }
                     }
                 }
-                toA = true;
+                toA = !queueV.isEmpty();
             }
         }
         return smallestCommonAncestor;
@@ -105,7 +99,7 @@ public class SAP {
     }
 
     private void increaseChildCount(HashMap<Integer, Integer> childCounter, int parent, int child) {
-        childCounter.put(parent, childCounter.get(child) + 1);
+        childCounter.putIfAbsent(parent, childCounter.get(child) + 1);
     }
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
