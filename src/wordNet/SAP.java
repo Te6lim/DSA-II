@@ -1,3 +1,5 @@
+package wordNet;
+
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.Queue;
 

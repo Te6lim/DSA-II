@@ -1,3 +1,5 @@
+package wordNet;
+
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
@@ -103,7 +105,7 @@ public class WordNet {
          if (!b || !b2) throw new IllegalArgumentException();
     }
 
-    // returns all WordNet nouns
+    // returns all wordNet.WordNet nouns
     public Iterable<String> nouns() {
         return nouns;
     }
@@ -127,7 +129,7 @@ public class WordNet {
         return localNouns;
     }
 
-    // is the word a WordNet noun?
+    // is the word a wordNet.WordNet noun?
     public boolean isNoun(String word) {
         if (word == null) throw new IllegalArgumentException();
         return !(Collections.binarySearch(nouns, word) < 0);

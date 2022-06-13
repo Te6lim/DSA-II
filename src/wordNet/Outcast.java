@@ -1,14 +1,15 @@
+package wordNet;
 
 public class Outcast {
 
     private final WordNet wn;
 
-    // constructor takes a WordNet object
+    // constructor takes a wordNet.WordNet object
     public Outcast(WordNet wordnet) {
         wn = wordnet;
     }
 
-    // given an array of WordNet nouns, return an outcast
+    // given an array of wordNet.WordNet nouns, return an outcast
     public String outcast(String[] nouns){
         int[] distances = new int[nouns.length];
         int largestNounIndex = 0;
@@ -25,7 +26,7 @@ public class Outcast {
 
     // see test client below
     public static void main(String[] args) {
-        /*WordNet wn = new WordNet(
+        /*wordNet.WordNet wn = new wordNet.WordNet(
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src\\" +
                         "\\synsets.txt",
                 "C:\\Users\\ADMIN\\IdeaProjects\\DSA II\\src" +
