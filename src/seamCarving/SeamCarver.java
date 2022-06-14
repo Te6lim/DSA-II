@@ -29,7 +29,9 @@ public class SeamCarver {
         Digraph g = new Digraph(picture().width() * picture.height());
         for (int v = 0; v < g.V(); ++v) {
             addDownwardEdges(v, g);
-            vertexWeights[v] = calculateEnergyOf(v);
+            if (x(v) == 0 || x(v) == picture().width() - 1 || y(v) == 0 || y(v) == picture().height() -1)
+                vertexWeights[v] = 1000;
+            else vertexWeights[v] = calculateEnergyOf(v);
         }
         return g;
     }
