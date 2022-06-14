@@ -161,7 +161,9 @@ public class SeamCarver {
     public double energy(int x, int y) {
         verifyRangeOfX(x);
         verifyRangeOfY(y);
-        return 0f;
+
+        int v = mPicture.width() * x + y;
+        return calculateEnergyOf(v);
     }
 
     // sequence of indices for horizontal seam
