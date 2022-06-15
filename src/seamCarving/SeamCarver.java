@@ -1,9 +1,9 @@
 package seamCarving;
 
-import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.Picture;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class SeamCarver {
 
@@ -12,28 +12,26 @@ public class SeamCarver {
     }
 
     private final Picture mPicture;
+    private Pixel[][] energyMatrix;
 
-    private final Digraph energyGradient;
-
-    private final double[] vertexWeights;
+    private int[] edgeTo;
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
         validateObject(picture);
         mPicture = new Picture(picture);
-        vertexWeights = new double[picture().width() * picture.height()];
-        energyGradient = getEnergyGradientFrom(picture);
     }
 
-    private Digraph getEnergyGradientFrom(Picture picture) {
-        Digraph g = new Digraph(picture().width() * picture.height());
-        for (int v = 0; v < g.V(); ++v) {
-            addDownwardEdges(v, g);
-            if (x(v) == 0 || x(v) == picture().width() - 1 || y(v) == 0 || y(v) == picture().height() -1)
-                vertexWeights[v] = 1000;
-            else vertexWeights[v] = calculateEnergyOf(v);
+    private Pixel[][] getEnergyGradientFrom(Picture picture) {
+
+        Pixel[][] matrix = new Pixel[picture.width()][picture.height()];
+
+        for (int v = 0; v < picture.height() * picture.width(); ++v) {
+            addDownwardEdges(v,matrix);
+            matrix[x(v)][y(v)].energy = calculateEnergyOf(v);
         }
-        return g;
+
+        return matrix;
     }
 
     private double calculateEnergyOf(int v) {
@@ -125,13 +123,15 @@ public class SeamCarver {
         }
     }
 
-    private void addDownwardEdges(int v, Digraph digraph) {
+    private void addDownwardEdges(int v, Pixel[][] matrix) {
         int x = x(v);
         int y = y(v);
 
-        if (x - 1 >= 0 && y + 1 < mPicture.height()) digraph.addEdge(v, v + (mPicture.width() - 1));
-        if (y + 1 < mPicture.height()) digraph.addEdge(v, v + mPicture.width());
-        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) digraph.addEdge(v, (v + mPicture.width() + 1));
+        matrix[x][y] = new Pixel();
+
+        if (x - 1 >= 0 && y + 1 < mPicture.height()) matrix[x][y].left = v + (mPicture.width() - 1);
+        if (y + 1 < mPicture.height()) matrix[x][y].center = v + mPicture.width();
+        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].right = v + mPicture.width() + 1;
     }
 
     private int x(int v) {
@@ -163,7 +163,7 @@ public class SeamCarver {
         verifyRangeOfY(y);
 
         int v = mPicture.width() * x + y;
-        return calculateEnergyOf(v);
+        return energyMatrix[x][y].energy;
     }
 
     // sequence of indices for horizontal seam
@@ -173,6 +173,10 @@ public class SeamCarver {
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
+        HashMap<Integer, Integer> edgeTo = new HashMap<>();
+        HashMap<Integer, Double> energyTo = new HashMap<>();
+
+        
         return null;
     }
 
@@ -229,6 +233,13 @@ public class SeamCarver {
             ++temp;
         }
         return false;
+    }
+
+    private class Pixel {
+
+        int left, center, right;
+        double energy;
+
     }
 
     // unit testing (optional)
