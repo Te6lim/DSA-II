@@ -1,7 +1,9 @@
 package seamCarving;
 
+import edu.princeton.cs.algs4.MinPQ;
 import edu.princeton.cs.algs4.Picture;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -12,17 +14,16 @@ public class SeamCarver {
     }
 
     private final Picture mPicture;
-    private Pixel[][] energyMatrix;
-
-    private int[] edgeTo;
+    private final Pixel[][] energyMatrix;
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
         validateObject(picture);
         mPicture = new Picture(picture);
+        energyMatrix = getEnergyMatrixFrom(picture);
     }
 
-    private Pixel[][] getEnergyGradientFrom(Picture picture) {
+    private Pixel[][] getEnergyMatrixFrom(Picture picture) {
 
         Pixel[][] matrix = new Pixel[picture.width()][picture.height()];
 
@@ -127,11 +128,11 @@ public class SeamCarver {
         int x = x(v);
         int y = y(v);
 
-        matrix[x][y] = new Pixel();
+        matrix[x][y] = new Pixel(v);
 
-        if (x - 1 >= 0 && y + 1 < mPicture.height()) matrix[x][y].left = v + (mPicture.width() - 1);
-        if (y + 1 < mPicture.height()) matrix[x][y].center = v + mPicture.width();
-        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].right = v + mPicture.width() + 1;
+        if (x - 1 >= 0 && y + 1 < mPicture.height()) matrix[x][y].addEdgeTo(v + (mPicture.width() - 1));
+        if (y + 1 < mPicture.height()) matrix[x][y].addEdgeTo(v + mPicture.width());
+        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addEdgeTo(v + mPicture.width() + 1);
     }
 
     private int x(int v) {
@@ -173,11 +174,40 @@ public class SeamCarver {
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        HashMap<Integer, Integer> edgeTo = new HashMap<>();
-        HashMap<Integer, Double> energyTo = new HashMap<>();
+        ArrayList<Integer> edgeTo = new ArrayList<>();
+        HashMap<Integer, Boolean> visited = new HashMap<>();
 
+        MinPQ<Pixel> pQ = new MinPQ<>();
+        int s = 1;
+        pQ.insert(energyMatrix[x(s)][y(s)]);
+
+        Pixel parent = null;
+
+        while (!pQ.isEmpty()) {
+            Pixel p = pQ.delMin();
+            if (!visited.get(p.position)) {
+                if (parent != null) {
+                    for (int e : parent.edges.keySet()) {
+                        if (e != parent.position)
+                            parent.removeEdge(e);
+
+                        visited.put(e, true);
+                    }
+                    edgeTo.add(parent.position);
+                }
+                edgeTo.add(p.position);
+                parent = p;
+                for (int i : p.edges.keySet()) pQ.insert(energyMatrix[x(i)][y(i)]);
+            }
+        }
+
+        int[] list = new int[edgeTo.size() + 1];
+
+        for (int x = 0; x < edgeTo.size();++x) {
+            list[x] = y(edgeTo.get(x));
+        }
         
-        return null;
+        return list;
     }
 
     // remove horizontal seam from current picture
@@ -235,11 +265,28 @@ public class SeamCarver {
         return false;
     }
 
-    private class Pixel {
+    private class Pixel implements Comparable<Pixel> {
 
-        int left, center, right;
+        HashMap<Integer, Integer> edges = new HashMap<>();
+
+        private final int position;
+
+        private Pixel(int p) { position = p; }
+
         double energy;
 
+        private void addEdgeTo(int q) {
+            edges.put(q, position);
+        }
+
+        private void removeEdge(int r) {
+            edges.remove(r);
+        }
+
+        @Override
+        public int compareTo(Pixel p) {
+            return Double.compare(energy, p.energy);
+        }
     }
 
     // unit testing (optional)
