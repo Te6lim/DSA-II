@@ -174,40 +174,65 @@ public class SeamCarver {
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        ArrayList<Integer> edgeTo = new ArrayList<>();
-        HashMap<Integer, Boolean> visited = new HashMap<>();
+        int[] verticalSeam = new int[0];
+        double totalEnergy = -1.0;
 
-        MinPQ<Pixel> pQ = new MinPQ<>();
-        int s = 1;
-        pQ.insert(energyMatrix[x(s)][y(s)]);
+        for (int s = 0; s < mPicture.width(); ++s) {
+            ArrayList<Integer> edgeTo = new ArrayList<>();
+            HashMap<Integer, Boolean> visited = new HashMap<>();
 
-        Pixel parent = null;
+            MinPQ<Pixel> pQ = new MinPQ<>();
+            pQ.insert(energyMatrix[x(s)][y(s)]);
 
-        while (!pQ.isEmpty()) {
-            Pixel p = pQ.delMin();
-            if (!visited.get(p.position)) {
-                if (parent != null) {
-                    for (int e : parent.edges.keySet()) {
-                        if (e != parent.position)
-                            parent.removeEdge(e);
+            Pixel parent = null;
 
-                        visited.put(e, true);
+            double tempTotalEnergy = 0.0f;
+
+            while (!pQ.isEmpty()) {
+                Pixel p = pQ.delMin();
+                if (!visited.get(p.position)) {
+                    if (parent != null) {
+                        markChildrenAsVisitedAndRemoveAllExceptSmallest(visited, parent);
                     }
-                    edgeTo.add(parent.position);
+                    edgeTo.add(p.position);
+                    tempTotalEnergy += energyMatrix[x(p.position)][y(p.position)].energy;
+                    parent = p;
+                    addChildrenToPQ(pQ, p);
                 }
-                edgeTo.add(p.position);
-                parent = p;
-                for (int i : p.edges.keySet()) pQ.insert(energyMatrix[x(i)][y(i)]);
+
+                if (totalEnergy < 0) {
+                    totalEnergy = tempTotalEnergy;
+                    verticalSeam = extractVerticalCoordinatesFrom(edgeTo);
+                } else {
+                    if (tempTotalEnergy < totalEnergy) {
+                        totalEnergy = tempTotalEnergy;
+                        verticalSeam = extractVerticalCoordinatesFrom(edgeTo);
+                    }
+                }
             }
         }
+        return verticalSeam;
+    }
 
-        int[] list = new int[edgeTo.size() + 1];
-
-        for (int x = 0; x < edgeTo.size();++x) {
-            list[x] = y(edgeTo.get(x));
+    private int[] extractVerticalCoordinatesFrom(ArrayList<Integer> edgeTo) {
+        int[] yCoordinates = new int[edgeTo.size() + 1];
+        for (int x = 0; x < edgeTo.size(); ++x) {
+            yCoordinates[x] = y(edgeTo.get(x));
         }
-        
-        return list;
+        return yCoordinates;
+    }
+
+    private void addChildrenToPQ(MinPQ<Pixel> pQ, Pixel p) {
+        for (int i : p.edges.keySet()) pQ.insert(energyMatrix[x(i)][y(i)]);
+    }
+
+    private void markChildrenAsVisitedAndRemoveAllExceptSmallest(HashMap<Integer, Boolean> visited, Pixel parent) {
+        for (int e : parent.edges.keySet()) {
+            if (e != parent.position)
+                parent.removeEdge(e);
+
+            visited.put(e, true);
+        }
     }
 
     // remove horizontal seam from current picture
