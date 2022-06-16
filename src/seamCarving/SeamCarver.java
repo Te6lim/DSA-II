@@ -2,10 +2,13 @@ package seamCarving;
 
 import edu.princeton.cs.algs4.MinPQ;
 import edu.princeton.cs.algs4.Picture;
+import edu.princeton.cs.algs4.StdOut;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Random;
 
 public class SeamCarver {
 
@@ -36,6 +39,8 @@ public class SeamCarver {
     }
 
     private double calculateEnergyOf(int v) {
+        if (x(v) == 0 || x(v) == mPicture.width() - 1 || y(v) == 0 || y(v) == mPicture.height() - 1)
+            return 1000;
         int deltaXSquared = getDeltaXSquared(v);
         int deltaYSquared = getDeltaYSquared(v);
         return Math.sqrt((double) deltaXSquared + (double)deltaYSquared);
@@ -71,21 +76,21 @@ public class SeamCarver {
 
         switch (rgb) {
             case RED : {
-                if (x - 1 <= 0 && x + 1 < mPicture.width())
+                if (x - 1 >= 0 && x + 1 < mPicture.width())
                     return mPicture.get(x + 1, y).getRed() - mPicture.get(x - 1, y).getRed();
                 if (x - 1 < 0) return mPicture.get(x + 1, y).getRed();
                 else return mPicture.get(x - 1, y).getRed();
             }
 
             case GREEN : {
-                if (x - 1 <= 0 && x + 1 < mPicture.width())
+                if (x - 1 >= 0 && x + 1 < mPicture.width())
                     return mPicture.get(x + 1, y).getGreen() - mPicture.get(x - 1, y).getGreen();
                 if (x - 1 < 0) return mPicture.get(x + 1, y).getGreen();
                 else return mPicture.get(x - 1, y).getGreen();
             }
 
             case BLUE : {
-                if (x - 1 <= 0 && x + 1 < mPicture.width())
+                if (x - 1 >= 0 && x + 1 < mPicture.width())
                     return mPicture.get(x + 1, y).getBlue() - mPicture.get(x - 1, y).getBlue();
                 if (x - 1 < 0) return mPicture.get(x + 1, y).getBlue();
                 else return mPicture.get(x - 1, y).getBlue();
@@ -100,21 +105,21 @@ public class SeamCarver {
 
         switch (rgb) {
             case RED : {
-                if (y - 1 <= 0 && y + 1 < mPicture.height())
+                if (y - 1 >= 0 && y + 1 < mPicture.height())
                     return mPicture.get(x, y + 1).getRed() - mPicture.get(x, y - 1).getRed();
                 if (y - 1 < 0) return mPicture.get(x, y + 1).getRed();
                 else return mPicture.get(x, y - 1).getRed();
             }
 
             case GREEN : {
-                if (y - 1 <= 0 && y + 1 < mPicture.height())
+                if (y - 1 >= 0 && y + 1 < mPicture.height())
                     return mPicture.get(x, y + 1).getGreen() - mPicture.get(x, y - 1).getGreen();
                 if (y - 1 < 0) return mPicture.get(x, y + 1).getGreen();
                 else return mPicture.get(x, y - 1).getGreen();
             }
 
             case BLUE : {
-                if (y - 1 <= 0 && y + 1 < mPicture.height())
+                if (y - 1 >= 0 && y + 1 < mPicture.height())
                     return mPicture.get(x, y + 1).getBlue() - mPicture.get(x, y - 1).getBlue();
                 if (y - 1 < 0) return mPicture.get(x, y + 1).getBlue();
                 else return mPicture.get(x, y - 1).getBlue();
@@ -183,9 +188,9 @@ public class SeamCarver {
 
             MinPQ<Pixel> pQ = new MinPQ<>();
             pQ.insert(energyMatrix[x(s)][y(s)]);
+            visited.put(energyMatrix[x(s)][y(s)].position, true);
 
             Pixel parent = null;
-
             double tempTotalEnergy = 0.0f;
 
             while (!pQ.isEmpty()) {
@@ -316,6 +321,37 @@ public class SeamCarver {
 
     // unit testing (optional)
     public static void main(String[] args) {
+
+        int width = 5; int height = 5;
+
+        Picture p = new Picture(width, height);
+
+        Random rand = new Random();
+
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                int r = rand.nextInt(256);
+                int g = rand.nextInt(256);
+                int b = rand.nextInt(256);
+                p.set(x, y, new Color(r, g, b));
+            }
+        }
+
+        SeamCarver carver = new SeamCarver(p);
+
+        for (int x = 0; x < p.width(); ++x) {
+            for (int y = 0; y < p.height(); ++y) {
+                StdOut.print("[" + carver.energyMatrix[x][y].energy + "]");
+            }
+            StdOut.println();
+        }
+
+        int[] seam = carver.findVerticalSeam();
+
+        for (int i = 0; i < seam.length; ++i) {
+            if (i + 1 < seam.length) StdOut.print(i + "->");
+            else StdOut.println(i);
+        }
 
     }
 }
