@@ -346,11 +346,11 @@ public class SeamCarver {
 
         Picture pic = new Picture(newWidth, newHeight);
 
-        /*for (int r = 0; r < mPicture.height(); ++r) {
+        for (int r = 0; r < mPicture.height(); ++r) {
             for (int c = 0; c < mPicture.width(); ++c) {
-                if (c != seam[r]) pic.set();
+                if (c != seam[r]) pic.set(r, c, mPicture.get(r, c));
             }
-        }*/
+        }
         mPicture = pic;
         energyMatrix = getEnergyMatrixFrom(pic);
     }
