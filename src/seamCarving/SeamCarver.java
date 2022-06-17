@@ -29,7 +29,7 @@ public class SeamCarver {
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
             matrix[x(v)][y(v)] = new Pixel(v);
-            addVerticalEdges(v,matrix);
+            //addVerticalEdges(v,matrix);
             addHorizontalEdges(v, matrix);
             matrix[x(v)][y(v)].energy = calculateEnergyOf(v);
         }
@@ -148,7 +148,7 @@ public class SeamCarver {
 
         if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addHorizontalEdgeTo(v + (mPicture.width() + 1));
         if (x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo(v + 1);
-        if (y - 1 >= mPicture.height() && x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo(v - (mPicture.width() - 1));
+        if (y - 1 >= 0 && x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo((v - mPicture.width()) + 1);
         StdOut.println("Parent= " + v);
         for (int p : matrix[x][y].horizontalEdges.keySet()) {
             StdOut.print(" " + p);
@@ -192,7 +192,7 @@ public class SeamCarver {
         double totalEnergy = -1.0;
 
         for (int s = 0; s < mPicture.height(); ++s) {
-            Pixel source = energyMatrix[s * mPicture.width()][s * mPicture.width()];
+            Pixel source = energyMatrix[x(s * mPicture.width())][y(s * mPicture.width())];
 
             ArrayList<Integer> seam = findSeam(source, false);
 
@@ -205,11 +205,11 @@ public class SeamCarver {
 
             if (totalEnergy < 0) {
                 totalEnergy = tempTotalEnergy;
-                seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam);
+                seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam, false);
             } else {
                 if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
-                    seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam);
+                    seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam, false);
                 }
             }
         }
@@ -267,23 +267,31 @@ public class SeamCarver {
 
             if (totalEnergy < 0) {
                 totalEnergy = tempTotalEnergy;
-                seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam);
+                seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam, true);
             } else {
                 if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
-                    seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam);
+                    seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam, true);
                 }
             }
         }
+        StdOut.println();
         return seamVerticalCoordinates;
     }
 
-    private int[] extractVerticalCoordinatesFrom(ArrayList<Integer> edgeTo) {
-        int[] yCoordinates = new int[edgeTo.size()];
-        for (int x = 0; x < edgeTo.size(); ++x) {
-            yCoordinates[x] = edgeTo.get(x);
+    private int[] extractVerticalCoordinatesFrom(ArrayList<Integer> vertices, boolean vertical) {
+        int[] coordinates = new int[vertices.size()];
+        if (vertical) {
+            for (int x = 0; x < vertices.size(); ++x) {
+                coordinates[x] = vertices.get(x);
+            }
+            return coordinates;
+        } else {
+            for (int x = 0; x < vertices.size(); ++x) {
+                coordinates[x] = vertices.get(x);
+            }
+            return coordinates;
         }
-        return yCoordinates;
     }
 
     private void addVerticalChildrenToPQ(MinPQ<Pixel> pQ, HashMap<Integer, Boolean> visited, Pixel p, boolean vertical) {
@@ -423,13 +431,19 @@ public class SeamCarver {
             StdOut.println();
         }
 
-        int[] seam = carver.findVerticalSeam();
+        int[] verticalSeam = carver.findVerticalSeam();
+        int[] horizontalSeam = carver.findHorizontalSeam();
 
-        StdOut.println("seam size = " + seam.length);
+        for (int i = 0; i < verticalSeam.length; ++i) {
+            if (i + 1 < verticalSeam.length) StdOut.print(verticalSeam[i] + "->");
+            else StdOut.println(verticalSeam[i]);
+        }
 
-        for (int i = 0; i < seam.length; ++i) {
-            if (i + 1 < seam.length) StdOut.print(seam[i] + "->");
-            else StdOut.println(seam[i]);
+        StdOut.println();
+
+        for (int i = 0; i < horizontalSeam.length; ++i) {
+            if (i + 1 < horizontalSeam.length) StdOut.print(horizontalSeam[i] + "->");
+            else StdOut.println(horizontalSeam[i]);
         }
 
     }
