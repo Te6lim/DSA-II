@@ -188,44 +188,43 @@ public class SeamCarver {
 
     // sequence of indices for horizontal seam
     public int[] findHorizontalSeam() {
-        int[] seam = new int[0];
+        int[] seamHorizontalCoordinates = new int[0];
         double totalEnergy = -1.0;
 
         for (int s = 0; s < mPicture.height(); ++s) {
-            ArrayList<Integer> edgeTo = new ArrayList<>();
-            HashMap<Integer, Boolean> visited = new HashMap<>();
+            Pixel source = energyMatrix[s * mPicture.width()][s * mPicture.width()];
 
-            MinPQ<Pixel> pQ = new MinPQ<>();
-            pQ.insert(energyMatrix[x(mPicture.width() * s)][y(mPicture.width() * s)]);
-            visited.put(s, false);
+            ArrayList<Integer> seam = findSeam(source, false);
 
-            Pixel parent = null;
-            double tempTotalEnergy = 0.0f;
-
-            tempTotalEnergy = getTotalEnergyOfSeam(edgeTo, visited, pQ, false);
-
-            for (int i = 0; i < edgeTo.size(); ++i) {
-                if (i + 1 < edgeTo.size()) StdOut.print(edgeTo.get(i) + "->");
-                else StdOut.print(edgeTo.get(i));
+            for (int i = 0; i < seam.size(); ++i) {
+                if (i + 1 < seam.size()) StdOut.print(seam.get(i) + "->");
+                else StdOut.print(seam.get(i));
             }
+            double tempTotalEnergy = totalEnergyOf(seam);
             StdOut.println(" total energy= " + tempTotalEnergy);
 
             if (totalEnergy < 0) {
                 totalEnergy = tempTotalEnergy;
-                seam = extractVerticalCoordinatesFrom(edgeTo);
+                seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam);
             } else {
                 if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
-                    seam = extractVerticalCoordinatesFrom(edgeTo);
+                    seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam);
                 }
             }
         }
-        return seam;
+        return seamHorizontalCoordinates;
     }
 
-    private double getTotalEnergyOfSeam(ArrayList<Integer> edgeTo, HashMap<Integer, Boolean> visited, MinPQ<Pixel> pQ, boolean b) {
+    private ArrayList<Integer> findSeam(Pixel source, boolean b) {
+        HashMap<Integer, Boolean> visited = new HashMap<>();
+        ArrayList<Integer> pixels = new ArrayList<>();
+
+        MinPQ<Pixel> pQ = new MinPQ<>();
+        pQ.insert(source);
+        visited.put(source.position, false);
         Pixel parent = null;
-        double totalEnergy = 0.0;
+
         while (!pQ.isEmpty()) {
             Pixel p = pQ.delMin();
             if (!visited.getOrDefault(p.position, false)) {
@@ -233,50 +232,50 @@ public class SeamCarver {
                 if (parent != null) {
                     markChildrenAsVisited(visited, parent, b);
                 }
-                edgeTo.add(p.position);
-                totalEnergy += energyMatrix[x(p.position)][y(p.position)].energy;
+                pixels.add(p.position);
                 parent = p;
                 addVerticalChildrenToPQ(pQ, visited, p, b);
             }
         }
-        return totalEnergy;
+        return pixels;
+    }
+
+    private double totalEnergyOf(ArrayList<Integer> seam) {
+        double total = 0.0;
+        for (int v : seam) total += energyMatrix[x(v)][y(v)].energy;
+        return total;
     }
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        int[] seam = new int[0];
+        int[] seamVerticalCoordinates = new int[0];
         double totalEnergy = -1.0;
 
         for (int s = 0; s < mPicture.width(); ++s) {
-            ArrayList<Integer> edgeTo = new ArrayList<>();
-            HashMap<Integer, Boolean> visited = new HashMap<>();
 
-            MinPQ<Pixel> pQ = new MinPQ<>();
-            pQ.insert(energyMatrix[x(s)][y(s)]);
-            visited.put(s, false);
+            Pixel source = energyMatrix[x(s)][y(s)];
 
-            Pixel parent = null;
-            double tempTotalEnergy = 0.0f;
+            ArrayList<Integer> seam = findSeam(source, true);
 
-            tempTotalEnergy = getTotalEnergyOfSeam(edgeTo, visited, pQ, true);
+            double tempTotalEnergy = totalEnergyOf(seam);
 
-            for (int i = 0; i < edgeTo.size(); ++i) {
-                if (i + 1 < edgeTo.size()) StdOut.print(edgeTo.get(i) + "->");
-                else StdOut.print(edgeTo.get(i));
+            for (int i = 0; i < seam.size(); ++i) {
+                if (i + 1 < seam.size()) StdOut.print(seam.get(i) + "->");
+                else StdOut.print(seam.get(i));
             }
             StdOut.println(" total energy= " + tempTotalEnergy);
 
             if (totalEnergy < 0) {
                 totalEnergy = tempTotalEnergy;
-                seam = extractVerticalCoordinatesFrom(edgeTo);
+                seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam);
             } else {
                 if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
-                    seam = extractVerticalCoordinatesFrom(edgeTo);
+                    seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam);
                 }
             }
         }
-        return seam;
+        return seamVerticalCoordinates;
     }
 
     private int[] extractVerticalCoordinatesFrom(ArrayList<Integer> edgeTo) {
