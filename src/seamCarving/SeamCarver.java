@@ -13,8 +13,8 @@ public class SeamCarver {
         RED, GREEN, BLUE
     }
 
-    private final Picture mPicture;
-    private final Pixel[][] energyMatrix;
+    private Picture mPicture;
+    private Pixel[][] energyMatrix;
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
@@ -28,17 +28,17 @@ public class SeamCarver {
         Pixel[][] matrix = new Pixel[picture.width()][picture.height()];
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
-            matrix[x(v)][y(v)] = new Pixel(v);
-            //addVerticalEdges(v,matrix);
+            matrix[row(v)][col(v)] = new Pixel(v);
+            addVerticalEdges(v,matrix);
             addHorizontalEdges(v, matrix);
-            matrix[x(v)][y(v)].energy = calculateEnergyOf(v);
+            matrix[row(v)][col(v)].energy = calculateEnergyOf(v);
         }
 
         return matrix;
     }
 
     private double calculateEnergyOf(int v) {
-        if (x(v) == 0 || x(v) == mPicture.width() - 1 || y(v) == 0 || y(v) == mPicture.height() - 1)
+        if (col(v) == 0 || col(v) == mPicture.width() - 1 || row(v) == 0 || row(v) == mPicture.height() - 1)
             return 1000;
         int deltaXSquared = getDeltaXSquared(v);
         int deltaYSquared = getDeltaYSquared(v);
@@ -70,58 +70,58 @@ public class SeamCarver {
     }
 
     private int getXColorDiff(int v, RGB rgb) {
-        int x = x(v);
-        int y = y(v);
+        int col = col(v);
+        int row = row(v);
 
         switch (rgb) {
             case RED : {
-                if (x - 1 >= 0 && x + 1 < mPicture.width())
-                    return mPicture.get(x + 1, y).getRed() - mPicture.get(x - 1, y).getRed();
-                if (x - 1 < 0) return mPicture.get(x + 1, y).getRed();
-                else return mPicture.get(x - 1, y).getRed();
+                if (col - 1 >= 0 && col + 1 < mPicture.width())
+                    return mPicture.get(row, col + 1).getRed() - mPicture.get(row, col - 1).getRed();
+                if (col - 1 < 0) return mPicture.get(row, col + 1).getRed();
+                else return mPicture.get(row, col - 1).getRed();
             }
 
             case GREEN : {
-                if (x - 1 >= 0 && x + 1 < mPicture.width())
-                    return mPicture.get(x + 1, y).getGreen() - mPicture.get(x - 1, y).getGreen();
-                if (x - 1 < 0) return mPicture.get(x + 1, y).getGreen();
-                else return mPicture.get(x - 1, y).getGreen();
+                if (col - 1 >= 0 && col + 1 < mPicture.width())
+                    return mPicture.get(row, col + 1).getGreen() - mPicture.get(row, col - 1).getGreen();
+                if (col - 1 < 0) return mPicture.get(row, col + 1).getGreen();
+                else return mPicture.get(row, col - 1).getGreen();
             }
 
             case BLUE : {
-                if (x - 1 >= 0 && x + 1 < mPicture.width())
-                    return mPicture.get(x + 1, y).getBlue() - mPicture.get(x - 1, y).getBlue();
-                if (x - 1 < 0) return mPicture.get(x + 1, y).getBlue();
-                else return mPicture.get(x - 1, y).getBlue();
+                if (col - 1 >= 0 && col + 1 < mPicture.width())
+                    return mPicture.get(row, col + 1).getBlue() - mPicture.get(row, col - 1).getBlue();
+                if (col - 1 < 0) return mPicture.get(row, col + 1).getBlue();
+                else return mPicture.get(row, col - 1).getBlue();
             }
             default: throw new IllegalArgumentException();
         }
     }
 
     private int getYColorDiff(int v, RGB rgb) {
-        int x = x(v);
-        int y = y(v);
+        int col = col(v);
+        int row = row(v);
 
         switch (rgb) {
             case RED : {
-                if (y - 1 >= 0 && y + 1 < mPicture.height())
-                    return mPicture.get(x, y + 1).getRed() - mPicture.get(x, y - 1).getRed();
-                if (y - 1 < 0) return mPicture.get(x, y + 1).getRed();
-                else return mPicture.get(x, y - 1).getRed();
+                if (row - 1 >= 0 && row + 1 < mPicture.height())
+                    return mPicture.get(row + 1, col).getRed() - mPicture.get(row - 1, col).getRed();
+                if (row - 1 < 0) return mPicture.get(row + 1, col).getRed();
+                else return mPicture.get(row - 1, col).getRed();
             }
 
             case GREEN : {
-                if (y - 1 >= 0 && y + 1 < mPicture.height())
-                    return mPicture.get(x, y + 1).getGreen() - mPicture.get(x, y - 1).getGreen();
-                if (y - 1 < 0) return mPicture.get(x, y + 1).getGreen();
-                else return mPicture.get(x, y - 1).getGreen();
+                if (row - 1 >= 0 && row + 1 < mPicture.height())
+                    return mPicture.get(row + 1, col).getGreen() - mPicture.get(row - 1, col).getGreen();
+                if (row - 1 < 0) return mPicture.get(row + 1, col).getGreen();
+                else return mPicture.get(row - 1, col).getGreen();
             }
 
             case BLUE : {
-                if (y - 1 >= 0 && y + 1 < mPicture.height())
-                    return mPicture.get(x, y + 1).getBlue() - mPicture.get(x, y - 1).getBlue();
-                if (y - 1 < 0) return mPicture.get(x, y + 1).getBlue();
-                else return mPicture.get(x, y - 1).getBlue();
+                if (row - 1 >= 0 && row + 1 < mPicture.height())
+                    return mPicture.get(row + 1, col).getBlue() - mPicture.get(row - 1, col).getBlue();
+                if (row - 1 < 0) return mPicture.get(row + 1, col).getBlue();
+                else return mPicture.get(row - 1, col).getBlue();
             }
 
             default: throw new IllegalArgumentException();
@@ -129,39 +129,41 @@ public class SeamCarver {
     }
 
     private void addVerticalEdges(int v, Pixel[][] matrix) {
-        int x = x(v);
-        int y = y(v);
+        int col = col(v);
+        int row = row(v);
 
-        if (x - 1 >= 0 && y + 1 < mPicture.height()) matrix[x][y].addVerticalEdgeTo(v + (mPicture.width() - 1));
-        if (y + 1 < mPicture.height()) matrix[x][y].addVerticalEdgeTo(v + mPicture.width());
-        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addVerticalEdgeTo(v + mPicture.width() + 1);
-        StdOut.println("Parent= " + v);
+        if (col - 1 >= 0 && row + 1 < mPicture.height()) matrix[row][col].addVerticalEdgeTo(v + (mPicture.width() - 1));
+        if (row + 1 < mPicture.height()) matrix[row][col].addVerticalEdgeTo(v + mPicture.width());
+        if (col + 1 < mPicture.width() && row + 1 < mPicture.height()) matrix[row][col].addVerticalEdgeTo(v + mPicture.width() + 1);
+        /*StdOut.println("Parent= " + v);
         for (int p : matrix[x][y].verticalEdges.keySet()) {
             StdOut.print(" " + p);
         }
-        StdOut.println("\n");
+        StdOut.println("\n");*/
     }
 
     private void addHorizontalEdges(int v, Pixel[][] matrix) {
-        int x = x(v);
-        int y = y(v);
+        int col = col(v);
+        int row = row(v);
 
-        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addHorizontalEdgeTo(v + (mPicture.width() + 1));
-        if (x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo(v + 1);
-        if (y - 1 >= 0 && x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo((v - mPicture.width()) + 1);
-        StdOut.println("Parent= " + v);
-        for (int p : matrix[x][y].horizontalEdges.keySet()) {
+        if (col + 1 < mPicture.width() && row + 1 < mPicture.height())
+            matrix[row][col].addHorizontalEdgeTo(v + (mPicture.width() + 1));
+        if (col + 1 < mPicture.width()) matrix[row][col].addHorizontalEdgeTo(v + 1);
+        if (row - 1 >= 0 && col + 1 < mPicture.width())
+            matrix[row][col].addHorizontalEdgeTo((v - mPicture.width()) + 1);
+        /*StdOut.println("Parent= " + v);
+        for (int p : matrix[row][col].horizontalEdges.keySet()) {
             StdOut.print(" " + p);
         }
-        StdOut.println("\n");
+        StdOut.println("\n");*/
     }
 
-    private int x(int v) {
-        return v % picture().width();
+    private int col(int v) {
+        return v % mPicture.width();
     }
 
-    private int y(int v) {
-        return v / picture().width();
+    private int row(int v) {
+        return v / mPicture.width();
     }
 
     // current picture
@@ -192,31 +194,65 @@ public class SeamCarver {
         double totalEnergy = -1.0;
 
         for (int s = 0; s < mPicture.height(); ++s) {
-            Pixel source = energyMatrix[x(s * mPicture.width())][y(s * mPicture.width())];
+            Pixel source = energyMatrix[row(s * mPicture.width())][col(s * mPicture.width())];
 
             ArrayList<Integer> seam = findSeam(source, false);
 
-            for (int i = 0; i < seam.size(); ++i) {
+            double tempTotalEnergy = totalEnergyOf(seam);
+
+            /*for (int i = 0; i < seam.size(); ++i) {
                 if (i + 1 < seam.size()) StdOut.print(seam.get(i) + "->");
                 else StdOut.print(seam.get(i));
             }
-            double tempTotalEnergy = totalEnergyOf(seam);
-            StdOut.println(" total energy= " + tempTotalEnergy);
+            StdOut.println(" total energy= " + tempTotalEnergy);*/
 
             if (totalEnergy < 0) {
                 totalEnergy = tempTotalEnergy;
-                seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam, false);
+                seamHorizontalCoordinates = extractCoordinatesFrom(seam, false);
             } else {
                 if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
-                    seamHorizontalCoordinates = extractVerticalCoordinatesFrom(seam, false);
+                    seamHorizontalCoordinates = extractCoordinatesFrom(seam, false);
                 }
             }
         }
         return seamHorizontalCoordinates;
     }
 
-    private ArrayList<Integer> findSeam(Pixel source, boolean b) {
+    // sequence of indices for vertical seam
+    public int[] findVerticalSeam() {
+        int[] seamVerticalCoordinates = new int[0];
+        double totalEnergy = -1.0;
+
+        for (int s = 0; s < mPicture.width(); ++s) {
+
+            Pixel source = energyMatrix[row(s)][col(s)];
+
+            ArrayList<Integer> seam = findSeam(source, true);
+
+            double tempTotalEnergy = totalEnergyOf(seam);
+
+            /*for (int i = 0; i < seam.size(); ++i) {
+                if (i + 1 < seam.size()) StdOut.print(seam.get(i) + "->");
+                else StdOut.print(seam.get(i));
+            }
+            StdOut.println(" total energy= " + tempTotalEnergy);*/
+
+            if (totalEnergy < 0) {
+                totalEnergy = tempTotalEnergy;
+                seamVerticalCoordinates = extractCoordinatesFrom(seam, true);
+            } else {
+                if (tempTotalEnergy < totalEnergy) {
+                    totalEnergy = tempTotalEnergy;
+                    seamVerticalCoordinates = extractCoordinatesFrom(seam, true);
+                }
+            }
+        }
+        StdOut.println();
+        return seamVerticalCoordinates;
+    }
+
+    private ArrayList<Integer> findSeam(Pixel source, boolean isVertical) {
         HashMap<Integer, Boolean> visited = new HashMap<>();
         ArrayList<Integer> pixels = new ArrayList<>();
 
@@ -230,11 +266,11 @@ public class SeamCarver {
             if (!visited.getOrDefault(p.position, false)) {
                 visited.replace(p.position, true);
                 if (parent != null) {
-                    markChildrenAsVisited(visited, parent, b);
+                    markChildrenAsVisited(visited, parent, isVertical);
                 }
                 pixels.add(p.position);
                 parent = p;
-                addVerticalChildrenToPQ(pQ, visited, p, b);
+                addChildrenToPQ(pQ, visited, p, isVertical);
             }
         }
         return pixels;
@@ -242,68 +278,35 @@ public class SeamCarver {
 
     private double totalEnergyOf(ArrayList<Integer> seam) {
         double total = 0.0;
-        for (int v : seam) total += energyMatrix[x(v)][y(v)].energy;
+        for (int v : seam) total += energyMatrix[row(v)][col(v)].energy;
         return total;
     }
 
-    // sequence of indices for vertical seam
-    public int[] findVerticalSeam() {
-        int[] seamVerticalCoordinates = new int[0];
-        double totalEnergy = -1.0;
-
-        for (int s = 0; s < mPicture.width(); ++s) {
-
-            Pixel source = energyMatrix[x(s)][y(s)];
-
-            ArrayList<Integer> seam = findSeam(source, true);
-
-            double tempTotalEnergy = totalEnergyOf(seam);
-
-            for (int i = 0; i < seam.size(); ++i) {
-                if (i + 1 < seam.size()) StdOut.print(seam.get(i) + "->");
-                else StdOut.print(seam.get(i));
-            }
-            StdOut.println(" total energy= " + tempTotalEnergy);
-
-            if (totalEnergy < 0) {
-                totalEnergy = tempTotalEnergy;
-                seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam, true);
-            } else {
-                if (tempTotalEnergy < totalEnergy) {
-                    totalEnergy = tempTotalEnergy;
-                    seamVerticalCoordinates = extractVerticalCoordinatesFrom(seam, true);
-                }
-            }
-        }
-        StdOut.println();
-        return seamVerticalCoordinates;
-    }
-
-    private int[] extractVerticalCoordinatesFrom(ArrayList<Integer> vertices, boolean vertical) {
+    private int[] extractCoordinatesFrom(ArrayList<Integer> vertices, boolean vertical) {
         int[] coordinates = new int[vertices.size()];
         if (vertical) {
             for (int x = 0; x < vertices.size(); ++x) {
-                coordinates[x] = vertices.get(x);
+                coordinates[x] = col(vertices.get(x));
             }
             return coordinates;
         } else {
             for (int x = 0; x < vertices.size(); ++x) {
-                coordinates[x] = vertices.get(x);
+                coordinates[x] = row(vertices.get(x));
             }
             return coordinates;
         }
     }
 
-    private void addVerticalChildrenToPQ(MinPQ<Pixel> pQ, HashMap<Integer, Boolean> visited, Pixel p, boolean vertical) {
+    private void addChildrenToPQ(MinPQ<Pixel> pQ, HashMap<Integer, Boolean> visited, Pixel p, boolean vertical) {
         if (vertical) {
             for (int i : p.verticalEdges.keySet()) {
-                Pixel pixel = energyMatrix[x(i)][y(i)];
+                Pixel pixel = energyMatrix[row(i)][col(i)];
                 pQ.insert(pixel);
                 visited.put(i, false);
             }
         } else {
             for (int i : p.horizontalEdges.keySet()) {
-                Pixel pixel = energyMatrix[x(i)][y(i)];
+                Pixel pixel = energyMatrix[row(i)][col(i)];
                 pQ.insert(pixel);
                 visited.put(i, false);
             }
@@ -338,6 +341,18 @@ public class SeamCarver {
         validateObject(seam);
         verifyVerticalSeam(seam);
         validatePictureDimension(mPicture.height());
+        int newWidth = mPicture.width() - 1;
+        int newHeight = mPicture.height();
+
+        Picture pic = new Picture(newWidth, newHeight);
+
+        /*for (int r = 0; r < mPicture.height(); ++r) {
+            for (int c = 0; c < mPicture.width(); ++c) {
+                if (c != seam[r]) pic.set();
+            }
+        }*/
+        mPicture = pic;
+        energyMatrix = getEnergyMatrixFrom(pic);
     }
 
     private void validateObject(Object object) {
@@ -394,7 +409,7 @@ public class SeamCarver {
         }
 
         private void addHorizontalEdgeTo(int q) {
-            if (verticalEdges.get(q) == null) horizontalEdges.put(q, position);
+            if (horizontalEdges.get(q) == null) horizontalEdges.put(q, position);
             else horizontalEdges.replace(q, position);
         }
 
@@ -434,6 +449,7 @@ public class SeamCarver {
         int[] verticalSeam = carver.findVerticalSeam();
         int[] horizontalSeam = carver.findHorizontalSeam();
 
+        StdOut.print("Vertical seam: ");
         for (int i = 0; i < verticalSeam.length; ++i) {
             if (i + 1 < verticalSeam.length) StdOut.print(verticalSeam[i] + "->");
             else StdOut.println(verticalSeam[i]);
@@ -441,6 +457,7 @@ public class SeamCarver {
 
         StdOut.println();
 
+        StdOut.print("Horizontal seam: ");
         for (int i = 0; i < horizontalSeam.length; ++i) {
             if (i + 1 < horizontalSeam.length) StdOut.print(horizontalSeam[i] + "->");
             else StdOut.println(horizontalSeam[i]);
