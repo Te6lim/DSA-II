@@ -28,7 +28,9 @@ public class SeamCarver {
         Pixel[][] matrix = new Pixel[picture.width()][picture.height()];
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
-            addDownwardEdges(v,matrix);
+            matrix[x(v)][y(v)] = new Pixel(v);
+            addVerticalEdges(v,matrix);
+            addHorizontalEdges(v, matrix);
             matrix[x(v)][y(v)].energy = calculateEnergyOf(v);
         }
 
@@ -126,23 +128,40 @@ public class SeamCarver {
         }
     }
 
-    private void addDownwardEdges(int v, Pixel[][] matrix) {
+    private void addVerticalEdges(int v, Pixel[][] matrix) {
         int x = x(v);
         int y = y(v);
 
-        matrix[x][y] = new Pixel(v);
-
-        if (x - 1 >= 0 && y + 1 < mPicture.height()) matrix[x][y].addEdgeTo(v + (mPicture.width() - 1));
-        if (y + 1 < mPicture.height()) matrix[x][y].addEdgeTo(v + mPicture.width());
-        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addEdgeTo(v + mPicture.width() + 1);
+        if (x - 1 >= 0 && y + 1 < mPicture.height()) matrix[x][y].addVerticalEdgeTo(v + (mPicture.width() - 1));
+        if (y + 1 < mPicture.height()) matrix[x][y].addVerticalEdgeTo(v + mPicture.width());
+        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addVerticalEdgeTo(v + mPicture.width() + 1);
+        StdOut.println("Parent= " + v);
+        for (int p : matrix[x][y].verticalEdges.keySet()) {
+            StdOut.print(" " + p);
+        }
+        StdOut.println("\n");
     }
 
-    private int y(int v) {
-        return v / picture().width();
+    private void addHorizontalEdges(int v, Pixel[][] matrix) {
+        int x = x(v);
+        int y = y(v);
+
+        if (x + 1 < mPicture.width() && y + 1 < mPicture.height()) matrix[x][y].addHorizontalEdgeTo(v + (mPicture.width() + 1));
+        if (x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo(v + 1);
+        if (y - 1 >= mPicture.height() && x + 1 < mPicture.width()) matrix[x][y].addHorizontalEdgeTo(v - (mPicture.width() - 1));
+        StdOut.println("Parent= " + v);
+        for (int p : matrix[x][y].horizontalEdges.keySet()) {
+            StdOut.print(" " + p);
+        }
+        StdOut.println("\n");
     }
 
     private int x(int v) {
         return v % picture().width();
+    }
+
+    private int y(int v) {
+        return v / picture().width();
     }
 
     // current picture
@@ -164,19 +183,68 @@ public class SeamCarver {
     public double energy(int x, int y) {
         verifyRangeOfX(x);
         verifyRangeOfY(y);
-
-        int v = mPicture.width() * x + y;
         return energyMatrix[x][y].energy;
     }
 
     // sequence of indices for horizontal seam
     public int[] findHorizontalSeam() {
-        return null;
+        int[] seam = new int[0];
+        double totalEnergy = -1.0;
+
+        for (int s = 0; s < mPicture.height(); ++s) {
+            ArrayList<Integer> edgeTo = new ArrayList<>();
+            HashMap<Integer, Boolean> visited = new HashMap<>();
+
+            MinPQ<Pixel> pQ = new MinPQ<>();
+            pQ.insert(energyMatrix[x(mPicture.width() * s)][y(mPicture.width() * s)]);
+            visited.put(s, false);
+
+            Pixel parent = null;
+            double tempTotalEnergy = 0.0f;
+
+            tempTotalEnergy = getTotalEnergyOfSeam(edgeTo, visited, pQ, false);
+
+            for (int i = 0; i < edgeTo.size(); ++i) {
+                if (i + 1 < edgeTo.size()) StdOut.print(edgeTo.get(i) + "->");
+                else StdOut.print(edgeTo.get(i));
+            }
+            StdOut.println(" total energy= " + tempTotalEnergy);
+
+            if (totalEnergy < 0) {
+                totalEnergy = tempTotalEnergy;
+                seam = extractVerticalCoordinatesFrom(edgeTo);
+            } else {
+                if (tempTotalEnergy < totalEnergy) {
+                    totalEnergy = tempTotalEnergy;
+                    seam = extractVerticalCoordinatesFrom(edgeTo);
+                }
+            }
+        }
+        return seam;
+    }
+
+    private double getTotalEnergyOfSeam(ArrayList<Integer> edgeTo, HashMap<Integer, Boolean> visited, MinPQ<Pixel> pQ, boolean b) {
+        Pixel parent = null;
+        double totalEnergy = 0.0;
+        while (!pQ.isEmpty()) {
+            Pixel p = pQ.delMin();
+            if (!visited.getOrDefault(p.position, false)) {
+                visited.replace(p.position, true);
+                if (parent != null) {
+                    markChildrenAsVisited(visited, parent, b);
+                }
+                edgeTo.add(p.position);
+                totalEnergy += energyMatrix[x(p.position)][y(p.position)].energy;
+                parent = p;
+                addVerticalChildrenToPQ(pQ, visited, p, b);
+            }
+        }
+        return totalEnergy;
     }
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        int[] verticalSeam = new int[0];
+        int[] seam = new int[0];
         double totalEnergy = -1.0;
 
         for (int s = 0; s < mPicture.width(); ++s) {
@@ -190,54 +258,60 @@ public class SeamCarver {
             Pixel parent = null;
             double tempTotalEnergy = 0.0f;
 
-            while (!pQ.isEmpty()) {
-                Pixel p = pQ.delMin();
-                if (!visited.getOrDefault(p.position, false)) {
-                    visited.replace(p.position, true);
-                    if (parent != null) {
-                        markChildrenAsVisitedAndRemoveAllExceptSmallest(visited, parent);
-                    }
-                    edgeTo.add(p.position);
-                    tempTotalEnergy += energyMatrix[x(p.position)][y(p.position)].energy;
-                    parent = p;
-                    addChildrenToPQ(pQ, visited, p);
-                }
+            tempTotalEnergy = getTotalEnergyOfSeam(edgeTo, visited, pQ, true);
 
-                if (totalEnergy < 0) {
+            for (int i = 0; i < edgeTo.size(); ++i) {
+                if (i + 1 < edgeTo.size()) StdOut.print(edgeTo.get(i) + "->");
+                else StdOut.print(edgeTo.get(i));
+            }
+            StdOut.println(" total energy= " + tempTotalEnergy);
+
+            if (totalEnergy < 0) {
+                totalEnergy = tempTotalEnergy;
+                seam = extractVerticalCoordinatesFrom(edgeTo);
+            } else {
+                if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
-                    verticalSeam = extractVerticalCoordinatesFrom(edgeTo);
-                } else {
-                    if (tempTotalEnergy < totalEnergy) {
-                        totalEnergy = tempTotalEnergy;
-                        verticalSeam = extractVerticalCoordinatesFrom(edgeTo);
-                    }
+                    seam = extractVerticalCoordinatesFrom(edgeTo);
                 }
             }
         }
-        return verticalSeam;
+        return seam;
     }
 
     private int[] extractVerticalCoordinatesFrom(ArrayList<Integer> edgeTo) {
         int[] yCoordinates = new int[edgeTo.size()];
         for (int x = 0; x < edgeTo.size(); ++x) {
-            yCoordinates[x] = x(edgeTo.get(x));
+            yCoordinates[x] = edgeTo.get(x);
         }
         return yCoordinates;
     }
 
-    private void addChildrenToPQ(MinPQ<Pixel> pQ, HashMap<Integer, Boolean> visited, Pixel p) {
-        StdOut.println("Parent = " + p.position);
-        for (int i : p.edges.keySet()) {
-            StdOut.println(i);
-            Pixel pixel = energyMatrix[x(i)][y(i)];
-            pQ.insert(pixel);
-            visited.put(i, false);
+    private void addVerticalChildrenToPQ(MinPQ<Pixel> pQ, HashMap<Integer, Boolean> visited, Pixel p, boolean vertical) {
+        if (vertical) {
+            for (int i : p.verticalEdges.keySet()) {
+                Pixel pixel = energyMatrix[x(i)][y(i)];
+                pQ.insert(pixel);
+                visited.put(i, false);
+            }
+        } else {
+            for (int i : p.horizontalEdges.keySet()) {
+                Pixel pixel = energyMatrix[x(i)][y(i)];
+                pQ.insert(pixel);
+                visited.put(i, false);
+            }
         }
     }
 
-    private void markChildrenAsVisitedAndRemoveAllExceptSmallest(HashMap<Integer, Boolean> visited, Pixel parent) {
-        for (int e : parent.edges.keySet()) {
-            visited.replace(e, true);
+    private void markChildrenAsVisited(HashMap<Integer, Boolean> visited, Pixel parent, boolean vertical) {
+        if (vertical) {
+            for (int e : parent.verticalEdges.keySet()) {
+                visited.replace(e, true);
+            }
+        } else {
+            for (int e : parent.horizontalEdges.keySet()) {
+                visited.replace(e, true);
+            }
         }
     }
 
@@ -298,7 +372,8 @@ public class SeamCarver {
 
     private class Pixel implements Comparable<Pixel> {
 
-        HashMap<Integer, Integer> edges = new HashMap<>();
+        HashMap<Integer, Integer> verticalEdges = new HashMap<>();
+        HashMap<Integer, Integer> horizontalEdges = new HashMap<>();
 
         private final int position;
 
@@ -306,12 +381,14 @@ public class SeamCarver {
 
         double energy;
 
-        private void addEdgeTo(int q) {
-            edges.put(q, position);
+        private void addVerticalEdgeTo(int q) {
+            if (verticalEdges.get(q) == null) verticalEdges.put(q, position);
+            else verticalEdges.replace(q, position);
         }
 
-        private void removeEdge(int r) {
-            edges.remove(r);
+        private void addHorizontalEdgeTo(int q) {
+            if (verticalEdges.get(q) == null) horizontalEdges.put(q, position);
+            else horizontalEdges.replace(q, position);
         }
 
         @Override
@@ -352,8 +429,8 @@ public class SeamCarver {
         StdOut.println("seam size = " + seam.length);
 
         for (int i = 0; i < seam.length; ++i) {
-            if (i + 1 < seam.length) StdOut.print(i + "->");
-            else StdOut.println(i);
+            if (i + 1 < seam.length) StdOut.print(seam[i] + "->");
+            else StdOut.println(seam[i]);
         }
 
     }
