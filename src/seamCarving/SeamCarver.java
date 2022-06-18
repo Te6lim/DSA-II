@@ -298,13 +298,13 @@ public class SeamCarver {
 
     private void addChildrenToPQ(MinPQ<Pixel> pQ, HashMap<Integer, Boolean> visited, Pixel p, boolean vertical) {
         if (vertical) {
-            for (int i : p.verticalEdges.keySet()) {
+            for (int i : p.verticalEdges) {
                 Pixel pixel = energyMatrix[row(i)][col(i)];
                 pQ.insert(pixel);
                 visited.put(i, false);
             }
         } else {
-            for (int i : p.horizontalEdges.keySet()) {
+            for (int i : p.horizontalEdges) {
                 Pixel pixel = energyMatrix[row(i)][col(i)];
                 pQ.insert(pixel);
                 visited.put(i, false);
@@ -314,11 +314,11 @@ public class SeamCarver {
 
     private void markChildrenAsVisited(HashMap<Integer, Boolean> visited, Pixel parent, boolean vertical) {
         if (vertical) {
-            for (int e : parent.verticalEdges.keySet()) {
+            for (int e : parent.verticalEdges) {
                 visited.replace(e, true);
             }
         } else {
-            for (int e : parent.horizontalEdges.keySet()) {
+            for (int e : parent.horizontalEdges) {
                 visited.replace(e, true);
             }
         }
@@ -412,10 +412,10 @@ public class SeamCarver {
         if (y < 0 || y > mPicture.width()) throw new IllegalArgumentException();
     }
 
-    private class Pixel implements Comparable<Pixel> {
+    private static class Pixel implements Comparable<Pixel> {
 
-        HashMap<Integer, Integer> verticalEdges = new HashMap<>();
-        HashMap<Integer, Integer> horizontalEdges = new HashMap<>();
+        private final ArrayList<Integer> verticalEdges = new ArrayList<>();
+        private final ArrayList<Integer> horizontalEdges = new ArrayList<>();
 
         private final int position;
 
@@ -424,13 +424,17 @@ public class SeamCarver {
         double energy;
 
         private void addVerticalEdgeTo(int q) {
-            if (verticalEdges.get(q) == null) verticalEdges.put(q, position);
-            else verticalEdges.replace(q, position);
+            Collections.sort(verticalEdges);
+            int edge = Collections.binarySearch(verticalEdges, q);
+            if (edge >= 0) verticalEdges.remove(edge);
+            verticalEdges.add(q);
         }
 
         private void addHorizontalEdgeTo(int q) {
-            if (horizontalEdges.get(q) == null) horizontalEdges.put(q, position);
-            else horizontalEdges.replace(q, position);
+            Collections.sort(horizontalEdges);
+            int edge = Collections.binarySearch(horizontalEdges, q);
+            if (edge >= 0) horizontalEdges.remove(edge);
+            horizontalEdges.add(q);
         }
 
         @Override
