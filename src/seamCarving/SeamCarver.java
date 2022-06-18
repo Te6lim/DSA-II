@@ -25,9 +25,6 @@ public class SeamCarver {
 
     private Pixel[][] getEnergyMatrixFrom(Picture picture) {
 
-        StdOut.println("Width: " + picture.width());
-        StdOut.println("Height: " + picture.height());
-
         Pixel[][] matrix = new Pixel[picture.height()][picture.width()];
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
@@ -251,7 +248,6 @@ public class SeamCarver {
                 }
             }
         }
-        StdOut.println();
         return seamVerticalCoordinates;
     }
 
@@ -334,17 +330,16 @@ public class SeamCarver {
         verifyHorizontalSeam(seam);
         verifyPictureDimension(mPicture.width());
 
-        int newWidth = mPicture.width() - 1;
-        int newHeight = mPicture.height();
+        int newWidth = mPicture.width();
+        int newHeight = mPicture.height() - 1;
 
         Picture pic = new Picture(newWidth, newHeight);
 
-        boolean foundCrack = false;
-
         for (int c = 0; c < mPicture.width(); ++c) {
+            boolean foundCrack = false;
             for (int r = 0; r < mPicture.height(); ++r) {
                 if (r != seam[c]) {
-                    if (foundCrack) pic.set(c - 1, r, mPicture.get(c, r));
+                    if (foundCrack) pic.set(c, r - 1, mPicture.get(c, r));
                     else pic.set(c, r, mPicture.get(c, r));
                 } else foundCrack = true;
             }
@@ -362,8 +357,6 @@ public class SeamCarver {
         int height = mPicture.height();
 
         Picture pic = new Picture(width, height);
-
-
 
         for (int r = 0; r < mPicture.height(); ++r) {
             boolean foundCrack = false;
@@ -407,7 +400,7 @@ public class SeamCarver {
     }
 
     private void verifyHorizontalSeam(int[] seam) {
-        if (seam.length < picture().width() || seam.length > mPicture.width()) throw new IllegalArgumentException();
+        if (seam.length < mPicture.width() || seam.length > mPicture.width()) throw new IllegalArgumentException();
         verifyEachHorizontal(seam);
     }
 
@@ -492,7 +485,17 @@ public class SeamCarver {
 
         StdOut.println();
 
-        carver.removeVerticalSeam(verticalSeam);
+        carver.removeHorizontalSeam(carver.findHorizontalSeam());
+        carver.removeVerticalSeam(carver.findVerticalSeam());
+        StdOut.println("Width: " + carver.width());
+        StdOut.println("Height: " + carver.height());
+        StdOut.println();
+
+        carver.removeHorizontalSeam(carver.findHorizontalSeam());
+        carver.removeVerticalSeam(carver.findVerticalSeam());
+        StdOut.println("Width: " + carver.width());
+        StdOut.println("Height: " + carver.height());
+        StdOut.println();
 
         StdOut.println("Removed vertical seam: ");
         for (Pixel[] r : carver.energyMatrix) {
