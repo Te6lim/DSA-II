@@ -18,14 +18,17 @@ public class SeamCarver {
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
-        validateObject(picture);
+        verifyObject(picture);
         mPicture = new Picture(picture);
         energyMatrix = getEnergyMatrixFrom(picture);
     }
 
     private Pixel[][] getEnergyMatrixFrom(Picture picture) {
 
-        Pixel[][] matrix = new Pixel[picture.width()][picture.height()];
+        StdOut.println("Width: " + picture.width());
+        StdOut.println("Height: " + picture.height());
+
+        Pixel[][] matrix = new Pixel[picture.height()][picture.width()];
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
             matrix[row(v)][col(v)] = new Pixel(v);
@@ -42,7 +45,7 @@ public class SeamCarver {
             return 1000;
         int deltaXSquared = getDeltaXSquared(v);
         int deltaYSquared = getDeltaYSquared(v);
-        return Math.sqrt((double) deltaXSquared + (double)deltaYSquared);
+        return Math.sqrt((double) deltaXSquared + (double) deltaYSquared);
     }
 
     private int getDeltaXSquared(int v) {
@@ -76,23 +79,23 @@ public class SeamCarver {
         switch (rgb) {
             case RED : {
                 if (col - 1 >= 0 && col + 1 < mPicture.width())
-                    return mPicture.get(row, col + 1).getRed() - mPicture.get(row, col - 1).getRed();
-                if (col - 1 < 0) return mPicture.get(row, col + 1).getRed();
-                else return mPicture.get(row, col - 1).getRed();
+                    return mPicture.get(col + 1, row).getRed() - mPicture.get(col - 1, row).getRed();
+                if (col - 1 < 0) return mPicture.get(col + 1, row).getRed();
+                else return mPicture.get(col - 1, row).getRed();
             }
 
             case GREEN : {
                 if (col - 1 >= 0 && col + 1 < mPicture.width())
-                    return mPicture.get(row, col + 1).getGreen() - mPicture.get(row, col - 1).getGreen();
-                if (col - 1 < 0) return mPicture.get(row, col + 1).getGreen();
-                else return mPicture.get(row, col - 1).getGreen();
+                    return mPicture.get(col + 1, row).getGreen() - mPicture.get(col - 1, row).getGreen();
+                if (col - 1 < 0) return mPicture.get(col + 1, row).getGreen();
+                else return mPicture.get(col - 1, row).getGreen();
             }
 
             case BLUE : {
                 if (col - 1 >= 0 && col + 1 < mPicture.width())
-                    return mPicture.get(row, col + 1).getBlue() - mPicture.get(row, col - 1).getBlue();
-                if (col - 1 < 0) return mPicture.get(row, col + 1).getBlue();
-                else return mPicture.get(row, col - 1).getBlue();
+                    return mPicture.get(col + 1, row).getBlue() - mPicture.get(col - 1, row).getBlue();
+                if (col - 1 < 0) return mPicture.get(col + 1, row).getBlue();
+                else return mPicture.get(col - 1, row).getBlue();
             }
             default: throw new IllegalArgumentException();
         }
@@ -105,23 +108,23 @@ public class SeamCarver {
         switch (rgb) {
             case RED : {
                 if (row - 1 >= 0 && row + 1 < mPicture.height())
-                    return mPicture.get(row + 1, col).getRed() - mPicture.get(row - 1, col).getRed();
-                if (row - 1 < 0) return mPicture.get(row + 1, col).getRed();
-                else return mPicture.get(row - 1, col).getRed();
+                    return mPicture.get(col, row + 1).getRed() - mPicture.get(col, row - 1).getRed();
+                if (row - 1 < 0) return mPicture.get(col, row + 1).getRed();
+                else return mPicture.get(col, row - 1).getRed();
             }
 
             case GREEN : {
                 if (row - 1 >= 0 && row + 1 < mPicture.height())
-                    return mPicture.get(row + 1, col).getGreen() - mPicture.get(row - 1, col).getGreen();
-                if (row - 1 < 0) return mPicture.get(row + 1, col).getGreen();
-                else return mPicture.get(row - 1, col).getGreen();
+                    return mPicture.get(col, row + 1).getGreen() - mPicture.get(col, row - 1).getGreen();
+                if (row - 1 < 0) return mPicture.get(col, row + 1).getGreen();
+                else return mPicture.get(col, row - 1).getGreen();
             }
 
             case BLUE : {
                 if (row - 1 >= 0 && row + 1 < mPicture.height())
-                    return mPicture.get(row + 1, col).getBlue() - mPicture.get(row - 1, col).getBlue();
-                if (row - 1 < 0) return mPicture.get(row + 1, col).getBlue();
-                else return mPicture.get(row - 1, col).getBlue();
+                    return mPicture.get(col, row + 1).getBlue() - mPicture.get(row - 1, col).getBlue();
+                if (row - 1 < 0) return mPicture.get(col, row + 1).getBlue();
+                else return mPicture.get(col, row - 1).getBlue();
             }
 
             default: throw new IllegalArgumentException();
@@ -183,9 +186,9 @@ public class SeamCarver {
 
     // energy of pixel at column x and row y
     public double energy(int x, int y) {
-        verifyRangeOfX(x);
-        verifyRangeOfY(y);
-        return energyMatrix[x][y].energy;
+        verifyX(x);
+        verifyY(y);
+        return energyMatrix[y][x].energy;
     }
 
     // sequence of indices for horizontal seam
@@ -327,18 +330,23 @@ public class SeamCarver {
 
     // remove horizontal seam from current picture
     public void removeHorizontalSeam(int[] seam) {
-        validateObject(seam);
+        verifyObject(seam);
         verifyHorizontalSeam(seam);
-        validatePictureDimension(mPicture.width());
+        verifyPictureDimension(mPicture.width());
 
         int newWidth = mPicture.width() - 1;
         int newHeight = mPicture.height();
 
         Picture pic = new Picture(newWidth, newHeight);
 
+        boolean foundCrack = false;
+
         for (int c = 0; c < mPicture.width(); ++c) {
             for (int r = 0; r < mPicture.height(); ++r) {
-                if (r != seam[c]) pic.set(r, c, mPicture.get(r, c));
+                if (r != seam[c]) {
+                    if (foundCrack) pic.set(c - 1, r, mPicture.get(c, r));
+                    else pic.set(c, r, mPicture.get(c, r));
+                } else foundCrack = true;
             }
         }
         mPicture = pic;
@@ -347,62 +355,68 @@ public class SeamCarver {
 
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
-        validateObject(seam);
+        verifyObject(seam);
         verifyVerticalSeam(seam);
-        validatePictureDimension(mPicture.height());
-        int newWidth = mPicture.width() - 1;
-        int newHeight = mPicture.height();
+        verifyPictureDimension(mPicture.height());
+        int width = mPicture.width() - 1;
+        int height = mPicture.height();
 
-        Picture pic = new Picture(newWidth, newHeight);
+        Picture pic = new Picture(width, height);
+
+
 
         for (int r = 0; r < mPicture.height(); ++r) {
+            boolean foundCrack = false;
             for (int c = 0; c < mPicture.width(); ++c) {
-                if (c != seam[r]) pic.set(r, c, mPicture.get(r, c));
+                if (c != seam[r]) {
+                    if (foundCrack) {
+                        pic.set(c - 1, r, mPicture.get(c, r));
+                    } else {
+                        pic.set(c, r, mPicture.get(c, r));
+                    }
+                } else foundCrack = true;
             }
         }
         mPicture = pic;
         energyMatrix = getEnergyMatrixFrom(pic);
     }
 
-    private void validatePictureDimension(int dimension) {
+    private void verifyPictureDimension(int dimension) {
         if (dimension <= 1) throw new IllegalArgumentException();
     }
 
-    private void validateObject(Object object) {
+    private void verifyObject(Object object) {
         if (object == null) throw new IllegalArgumentException();
     }
 
-    private void verifyRangeOfX(int x) {
-        if (x < 0 || x > mPicture.width() - 1) throw new IllegalArgumentException();
+    private void verifyEachHorizontal(int[] seam) {
+        for (int s : seam) {
+            if (s < 0 || s > mPicture.width()) throw new IllegalArgumentException();
+        }
     }
 
-    private void verifyRangeOfY(int y) {
-        if (y < 0 || y > mPicture.height() - 1) throw new IllegalArgumentException();
+    private void verifyEachVertical(int[] seam) {
+        for (int s : seam) {
+            if (s < 0 || s > mPicture.height()) throw new IllegalArgumentException();
+        }
     }
 
     private void verifyVerticalSeam(int[] seam) {
-        if (seam.length < mPicture.height()) throw new IllegalArgumentException();
-        Arrays.sort(seam);
-        verifyRangeOfY(seam[0]);
-        verifyRangeOfY(seam[seam.length - 1]);
-        if (hasBreakage(seam)) throw new IllegalArgumentException();
+        if (seam.length < mPicture.height() || seam.length > mPicture.height()) throw new IllegalArgumentException();
+        verifyEachVertical(seam);
     }
 
     private void verifyHorizontalSeam(int[] seam) {
-        if (seam.length < picture().width()) throw new IllegalArgumentException();
-        Arrays.sort(seam);
-        verifyRangeOfX(seam[0]);
-        verifyRangeOfX(seam[seam.length - 1]);
-        if (hasBreakage(seam)) throw new IllegalArgumentException();
+        if (seam.length < picture().width() || seam.length > mPicture.width()) throw new IllegalArgumentException();
+        verifyEachHorizontal(seam);
     }
 
-    private boolean hasBreakage(int[] seam) {
-        int temp = -1;
-        for (int i : seam) {
-            if (i != temp + 1) return true;
-            ++temp;
-        }
-        return false;
+    private void verifyX(int x) {
+        if (x < 0 || x > mPicture.height()) throw new IllegalArgumentException();
+    }
+
+    private void verifyY(int y) {
+        if (y < 0 || y > mPicture.width()) throw new IllegalArgumentException();
     }
 
     private class Pixel implements Comparable<Pixel> {
@@ -435,26 +449,26 @@ public class SeamCarver {
     // unit testing (optional)
     public static void main(String[] args) {
 
-        int width = 5; int height = 5;
+        int width = 6; int height = 6;
 
         Picture p = new Picture(width, height);
 
         Random rand = new Random();
 
-        for (int x = 0; x < width; ++x) {
-            for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < height; ++x) {
+            for (int y = 0; y < width; ++y) {
                 int r = rand.nextInt(256);
                 int g = rand.nextInt(256);
                 int b = rand.nextInt(256);
-                p.set(x, y, new Color(r, g, b));
+                p.set(y, x, new Color(r, g, b));
             }
         }
 
         SeamCarver carver = new SeamCarver(p);
 
-        for (int x = 0; x < p.width(); ++x) {
-            for (int y = 0; y < p.height(); ++y) {
-                StdOut.print("[" + carver.energyMatrix[x][y].energy + "]");
+        for (int r = 0; r < p.height(); ++r) {
+            for (int c = 0; c < p.width(); ++c) {
+                StdOut.print("[" + carver.energyMatrix[r][c].energy + "]");
             }
             StdOut.println();
         }
@@ -474,6 +488,16 @@ public class SeamCarver {
         for (int i = 0; i < horizontalSeam.length; ++i) {
             if (i + 1 < horizontalSeam.length) StdOut.print(horizontalSeam[i] + "->");
             else StdOut.println(horizontalSeam[i]);
+        }
+
+        StdOut.println();
+
+        carver.removeVerticalSeam(verticalSeam);
+
+        StdOut.println("Removed vertical seam: ");
+        for (Pixel[] r : carver.energyMatrix) {
+            for (Pixel s : r) StdOut.print("[" + s.energy + "]");
+            StdOut.println();
         }
 
     }
