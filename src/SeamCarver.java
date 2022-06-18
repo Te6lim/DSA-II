@@ -1,10 +1,10 @@
 import edu.princeton.cs.algs4.Picture;
 import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.StdRandom;
 
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Random;
 
 
 public class SeamCarver {
@@ -29,7 +29,7 @@ public class SeamCarver {
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
             matrix[row(v)][col(v)] = new Pixel(v);
-            addVerticalEdges(v,matrix);
+            addVerticalEdges(v, matrix);
             addHorizontalEdges(v, matrix);
             matrix[row(v)][col(v)].energy = calculateEnergyOf(v);
         }
@@ -74,26 +74,15 @@ public class SeamCarver {
         int row = row(v);
 
         switch (rgb) {
-            case RED : {
-                if (col - 1 >= 0 && col + 1 < mPicture.width())
+            case RED :
                     return mPicture.get(col + 1, row).getRed() - mPicture.get(col - 1, row).getRed();
-                if (col - 1 < 0) return mPicture.get(col + 1, row).getRed();
-                else return mPicture.get(col - 1, row).getRed();
-            }
 
-            case GREEN : {
-                if (col - 1 >= 0 && col + 1 < mPicture.width())
+            case GREEN :
                     return mPicture.get(col + 1, row).getGreen() - mPicture.get(col - 1, row).getGreen();
-                if (col - 1 < 0) return mPicture.get(col + 1, row).getGreen();
-                else return mPicture.get(col - 1, row).getGreen();
-            }
 
-            case BLUE : {
-                if (col - 1 >= 0 && col + 1 < mPicture.width())
+            case BLUE :
                     return mPicture.get(col + 1, row).getBlue() - mPicture.get(col - 1, row).getBlue();
-                if (col - 1 < 0) return mPicture.get(col + 1, row).getBlue();
-                else return mPicture.get(col - 1, row).getBlue();
-            }
+
             default: throw new IllegalArgumentException();
         }
     }
@@ -103,26 +92,14 @@ public class SeamCarver {
         int row = row(v);
 
         switch (rgb) {
-            case RED : {
-                if (row - 1 >= 0 && row + 1 < mPicture.height())
+            case RED :
                     return mPicture.get(col, row + 1).getRed() - mPicture.get(col, row - 1).getRed();
-                if (row - 1 < 0) return mPicture.get(col, row + 1).getRed();
-                else return mPicture.get(col, row - 1).getRed();
-            }
 
-            case GREEN : {
-                if (row - 1 >= 0 && row + 1 < mPicture.height())
+            case GREEN :
                     return mPicture.get(col, row + 1).getGreen() - mPicture.get(col, row - 1).getGreen();
-                if (row - 1 < 0) return mPicture.get(col, row + 1).getGreen();
-                else return mPicture.get(col, row - 1).getGreen();
-            }
 
-            case BLUE : {
-                if (row - 1 >= 0 && row + 1 < mPicture.height())
+            case BLUE :
                     return mPicture.get(col, row + 1).getBlue() - mPicture.get(row - 1, col).getBlue();
-                if (row - 1 < 0) return mPicture.get(col, row + 1).getBlue();
-                else return mPicture.get(col, row - 1).getBlue();
-            }
 
             default: throw new IllegalArgumentException();
         }
@@ -173,8 +150,8 @@ public class SeamCarver {
 
     // energy of pixel at column x and row y
     public double energy(int x, int y) {
-        verifyX(x);
-        verifyY(y);
+        verifyColumn(x);
+        verifyRow(y);
         return energyMatrix[y][x].energy;
     }
 
@@ -364,15 +341,15 @@ public class SeamCarver {
         verifyEachHorizontal(seam);
     }
 
-    private void verifyX(int x) {
-        if (x < 0 || x > mPicture.height()) throw new IllegalArgumentException();
+    private void verifyColumn(int x) {
+        if (x < 0 || x > mPicture.width()) throw new IllegalArgumentException();
     }
 
-    private void verifyY(int y) {
-        if (y < 0 || y > mPicture.width()) throw new IllegalArgumentException();
+    private void verifyRow(int y) {
+        if (y < 0 || y > mPicture.height()) throw new IllegalArgumentException();
     }
 
-    private static class Pixel implements Comparable<Pixel> {
+    private static class Pixel {
 
         private final ArrayList<Integer> verticalEdges = new ArrayList<>();
         private final ArrayList<Integer> horizontalEdges = new ArrayList<>();
@@ -383,40 +360,34 @@ public class SeamCarver {
 
         double energy;
 
-        private void addVerticalEdgeTo(int q) {
-            Collections.sort(verticalEdges);
+        public void addVerticalEdgeTo(int q) {
             int edge = Collections.binarySearch(verticalEdges, q);
+            Collections.sort(verticalEdges);
             if (edge >= 0) verticalEdges.remove(edge);
             verticalEdges.add(q);
         }
 
-        private void addHorizontalEdgeTo(int q) {
-            Collections.sort(horizontalEdges);
+        public void addHorizontalEdgeTo(int q) {
             int edge = Collections.binarySearch(horizontalEdges, q);
+            Collections.sort(horizontalEdges);
             if (edge >= 0) horizontalEdges.remove(edge);
             horizontalEdges.add(q);
-        }
-
-        @Override
-        public int compareTo(Pixel p) {
-            return Double.compare(energy, p.energy);
         }
     }
 
     // unit testing (optional)
     public static void main(String[] args) {
 
-        int width = 6; int height = 6;
+        int width = 6;
+        int height = 6;
 
         Picture p = new Picture(width, height);
 
-        Random rand = new Random();
-
         for (int x = 0; x < height; ++x) {
             for (int y = 0; y < width; ++y) {
-                int r = rand.nextInt(256);
-                int g = rand.nextInt(256);
-                int b = rand.nextInt(256);
+                int r = StdRandom.uniform(0, 256);
+                int g = StdRandom.uniform(0, 256);
+                int b = StdRandom.uniform(0, 256);
                 p.set(y, x, new Color(r, g, b));
             }
         }
@@ -466,6 +437,5 @@ public class SeamCarver {
             for (Pixel s : r) StdOut.print("[" + s.energy + "]");
             StdOut.println();
         }
-
     }
 }
