@@ -330,10 +330,19 @@ public class SeamCarver {
         validateObject(seam);
         verifyHorizontalSeam(seam);
         validatePictureDimension(mPicture.width());
-    }
 
-    private void validatePictureDimension(int dimension) {
-        if (dimension <= 1) throw new IllegalArgumentException();
+        int newWidth = mPicture.width() - 1;
+        int newHeight = mPicture.height();
+
+        Picture pic = new Picture(newWidth, newHeight);
+
+        for (int c = 0; c < mPicture.width(); ++c) {
+            for (int r = 0; r < mPicture.height(); ++r) {
+                if (r != seam[c]) pic.set(r, c, mPicture.get(r, c));
+            }
+        }
+        mPicture = pic;
+        energyMatrix = getEnergyMatrixFrom(pic);
     }
 
     // remove vertical seam from current picture
@@ -353,6 +362,10 @@ public class SeamCarver {
         }
         mPicture = pic;
         energyMatrix = getEnergyMatrixFrom(pic);
+    }
+
+    private void validatePictureDimension(int dimension) {
+        if (dimension <= 1) throw new IllegalArgumentException();
     }
 
     private void validateObject(Object object) {
