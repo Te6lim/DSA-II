@@ -4,6 +4,7 @@ import edu.princeton.cs.algs4.StdRandom;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 
@@ -29,9 +30,14 @@ public class SeamCarver {
 
         for (int v = 0; v < picture.height() * picture.width(); ++v) {
             matrix[row(v)][col(v)] = new Pixel(v);
-            addVerticalEdges(v, matrix);
-            addHorizontalEdges(v, matrix);
             matrix[row(v)][col(v)].energy = calculateEnergyOf(v);
+        }
+
+        for (Pixel[] row : matrix) {
+            for (Pixel p : row) {
+                addVerticalEdges(p.position, matrix);
+                addHorizontalEdges(p.position, matrix);
+            }
         }
 
         return matrix;
@@ -40,31 +46,31 @@ public class SeamCarver {
     private double calculateEnergyOf(int v) {
         if (col(v) == 0 || col(v) == mPicture.width() - 1 || row(v) == 0 || row(v) == mPicture.height() - 1)
             return 1000;
-        int deltaXSquared = getDeltaXSquared(v);
-        int deltaYSquared = getDeltaYSquared(v);
-        return Math.sqrt((double) deltaXSquared + (double) deltaYSquared);
+        double deltaXSquared = getDeltaXSquared(v);
+        double deltaYSquared = getDeltaYSquared(v);
+        return Math.sqrt(deltaXSquared + deltaYSquared);
     }
 
-    private int getDeltaXSquared(int v) {
+    private double getDeltaXSquared(int v) {
         int rx = getXColorDiff(v, RGB.RED);
         int gx = getXColorDiff(v, RGB.GREEN);
         int bx = getXColorDiff(v, RGB.BLUE);
 
-        int deltaRXSquared = rx * rx;
-        int deltaGXSquared = gx * gx;
-        int deltaBXSquared = bx * bx;
+        double deltaRXSquared = Math.pow(rx, 2);
+        double deltaGXSquared = Math.pow(gx, 2);
+        double deltaBXSquared = Math.pow(bx, 2);
 
         return deltaRXSquared + deltaGXSquared + deltaBXSquared;
     }
 
-    private int getDeltaYSquared(int v) {
+    private double getDeltaYSquared(int v) {
         int ry = getYColorDiff(v, RGB.RED);
         int gy = getYColorDiff(v, RGB.GREEN);
         int by = getYColorDiff(v, RGB.BLUE);
 
-        int deltaRYSquared = ry * ry;
-        int deltaGYSquared = gy * gy;
-        int deltaBYSquared = by * by;
+        double deltaRYSquared = Math.pow(ry, 2);
+        double deltaGYSquared = Math.pow(gy, 2);
+        double deltaBYSquared = Math.pow(by, 2);
 
         return deltaRYSquared + deltaGYSquared + deltaBYSquared;
     }
@@ -74,14 +80,11 @@ public class SeamCarver {
         int row = row(v);
 
         switch (rgb) {
-            case RED :
-                    return mPicture.get(col + 1, row).getRed() - mPicture.get(col - 1, row).getRed();
+            case RED : return mPicture.get(col + 1, row).getRed() - mPicture.get(col - 1, row).getRed();
 
-            case GREEN :
-                    return mPicture.get(col + 1, row).getGreen() - mPicture.get(col - 1, row).getGreen();
+            case GREEN : return mPicture.get(col + 1, row).getGreen() - mPicture.get(col - 1, row).getGreen();
 
-            case BLUE :
-                    return mPicture.get(col + 1, row).getBlue() - mPicture.get(col - 1, row).getBlue();
+            case BLUE : return mPicture.get(col + 1, row).getBlue() - mPicture.get(col - 1, row).getBlue();
 
             default: throw new IllegalArgumentException();
         }
@@ -99,7 +102,7 @@ public class SeamCarver {
                     return mPicture.get(col, row + 1).getGreen() - mPicture.get(col, row - 1).getGreen();
 
             case BLUE :
-                    return mPicture.get(col, row + 1).getBlue() - mPicture.get(row - 1, col).getBlue();
+                    return mPicture.get(col, row + 1).getBlue() - mPicture.get(col, row - 1).getBlue();
 
             default: throw new IllegalArgumentException();
         }
@@ -109,20 +112,36 @@ public class SeamCarver {
         int col = col(v);
         int row = row(v);
 
-        if (col - 1 >= 0 && row + 1 < mPicture.height()) matrix[row][col].addVerticalEdgeTo(v + (mPicture.width() - 1));
-        if (row + 1 < mPicture.height()) matrix[row][col].addVerticalEdgeTo(v + mPicture.width());
-        if (col + 1 < mPicture.width() && row + 1 < mPicture.height()) matrix[row][col].addVerticalEdgeTo(v + mPicture.width() + 1);
+        if (col - 1 >= 0 && row + 1 < mPicture.height()) {
+            int p = v + (mPicture.width() - 1);
+            matrix[row][col].addVerticalEdgeTo(matrix[row(p)][col(p)]);
+        };
+        if (row + 1 < mPicture.height()) {
+            int p = v + mPicture.width();
+            matrix[row][col].addVerticalEdgeTo(matrix[row(p)][col(p)]);
+        }
+        if (col + 1 < mPicture.width() && row + 1 < mPicture.height()) {
+            int p = v + mPicture.width() + 1;
+            matrix[row][col].addVerticalEdgeTo(matrix[row(p)][col(p)]);
+        }
     }
 
     private void addHorizontalEdges(int v, Pixel[][] matrix) {
         int col = col(v);
         int row = row(v);
 
-        if (col + 1 < mPicture.width() && row + 1 < mPicture.height())
-            matrix[row][col].addHorizontalEdgeTo(v + (mPicture.width() + 1));
-        if (col + 1 < mPicture.width()) matrix[row][col].addHorizontalEdgeTo(v + 1);
-        if (row - 1 >= 0 && col + 1 < mPicture.width())
-            matrix[row][col].addHorizontalEdgeTo((v - mPicture.width()) + 1);
+        if (col + 1 < mPicture.width() && row + 1 < mPicture.height()) {
+            int p = v + (mPicture.width() + 1);
+            matrix[row][col].addHorizontalEdgeTo(matrix[row(p)][col(p)]);
+        }
+        if (col + 1 < mPicture.width()) {
+            int p = v + 1;
+            matrix[row][col].addHorizontalEdgeTo(matrix[row(p)][col(p)]);
+        }
+        if (row - 1 >= 0 && col + 1 < mPicture.width()) {
+            int p = (v - mPicture.width()) + 1;
+            matrix[row][col].addHorizontalEdgeTo(matrix[row(p)][col(p)]);
+        }
     }
 
     private int col(int v) {
@@ -160,10 +179,12 @@ public class SeamCarver {
         int[] seamHorizontalCoordinates = new int[0];
         double totalEnergy = -1.0;
 
+        ArrayList<Integer> seam = new ArrayList<>();
+
         for (int s = 0; s < mPicture.height(); ++s) {
             Pixel source = energyMatrix[row(s * mPicture.width())][col(s * mPicture.width())];
 
-            ArrayList<Integer> seam = findSeam(source, false);
+            seam = findSeam(source, false);
 
             double tempTotalEnergy = totalEnergyOf(seam);
 
@@ -185,11 +206,18 @@ public class SeamCarver {
         int[] seamVerticalCoordinates = new int[0];
         double totalEnergy = -1.0;
 
+        ArrayList<Integer> seam = new ArrayList<>();
+
         for (int s = 0; s < mPicture.width(); ++s) {
 
             Pixel source = energyMatrix[row(s)][col(s)];
 
-            ArrayList<Integer> seam = findSeam(source, true);
+            seam = findSeam(source, true);
+            StdOut.print("Source " + s + ": ");
+            for (int i : seam) {
+                StdOut.print(" " + i);
+            }
+            StdOut.println();
 
             double tempTotalEnergy = totalEnergyOf(seam);
 
@@ -212,7 +240,20 @@ public class SeamCarver {
 
         while (p != null) {
             pixels.add(p.position);
-            p = getChildWithSmallestEnergy(p, isVertical);
+            p.visited = true;
+            Pixel smallestEnergyChild = getChildWithSmallestEnergy(p, isVertical);
+            if (smallestEnergyChild != null) {
+                if (smallestEnergyChild.visited) {
+                    if (isVertical) {
+                        if (row(smallestEnergyChild.position) + 1 != mPicture.height() - 1)
+                            smallestEnergyChild.removeSmallestEdge(true);
+                    } else {
+                        if (col(smallestEnergyChild.position) + 1 != mPicture.width() - 1)
+                            smallestEnergyChild.removeSmallestEdge(false);
+                    }
+                }
+            }
+            p = smallestEnergyChild;
         }
         return pixels;
     }
@@ -241,8 +282,7 @@ public class SeamCarver {
         Pixel smallestEnergyPixel = null;
         if (vertical) {
             if (p.verticalEdges.isEmpty()) return null;
-            for (int i : p.verticalEdges) {
-                Pixel pixel = energyMatrix[row(i)][col(i)];
+            for (Pixel pixel : p.verticalEdges) {
                 if (smallestEnergyPixel == null) smallestEnergyPixel = pixel;
                 else {
                     if (pixel.energy < smallestEnergyPixel.energy) smallestEnergyPixel = pixel;
@@ -250,8 +290,7 @@ public class SeamCarver {
             }
         } else {
             if (p.horizontalEdges.isEmpty()) return null;
-            for (int i : p.horizontalEdges) {
-                Pixel pixel = energyMatrix[row(i)][col(i)];
+            for (Pixel pixel : p.horizontalEdges) {
                 if (smallestEnergyPixel == null) smallestEnergyPixel = pixel;
                 else {
                     if (pixel.energy < smallestEnergyPixel.energy) smallestEnergyPixel = pixel;
@@ -351,35 +390,55 @@ public class SeamCarver {
 
     private static class Pixel {
 
-        private final ArrayList<Integer> verticalEdges = new ArrayList<>();
-        private final ArrayList<Integer> horizontalEdges = new ArrayList<>();
+        private final ArrayList<Pixel> verticalEdges = new ArrayList<>();
+        private final ArrayList<Pixel> horizontalEdges = new ArrayList<>();
 
         private final int position;
 
         private Pixel(int p) { position = p; }
 
+        private boolean visited = false;
+
         double energy;
 
-        public void addVerticalEdgeTo(int q) {
-            int edge = Collections.binarySearch(verticalEdges, q);
-            Collections.sort(verticalEdges);
-            if (edge >= 0) verticalEdges.remove(edge);
+        public void addVerticalEdgeTo(Pixel q) {
+            for (Pixel e : verticalEdges) if (e == q) verticalEdges.remove(q);
             verticalEdges.add(q);
         }
 
-        public void addHorizontalEdgeTo(int q) {
-            int edge = Collections.binarySearch(horizontalEdges, q);
-            Collections.sort(horizontalEdges);
-            if (edge >= 0) horizontalEdges.remove(edge);
+        public void addHorizontalEdgeTo(Pixel q) {
+            for (Pixel e : horizontalEdges) if (e == q) horizontalEdges.remove(q);
             horizontalEdges.add(q);
+        }
+
+        private void removeSmallestEdge(boolean isVertical) {
+            if (isVertical) {
+                Pixel smallest = null;
+                for (Pixel e : verticalEdges) {
+                    if (smallest == null) smallest = e;
+                    else {
+                        if (e.energy < smallest.energy) smallest = e;
+                    }
+                }
+                if (!verticalEdges.isEmpty()) verticalEdges.remove(smallest);
+            } else {
+                Pixel smallest = null;
+                for (Pixel e : horizontalEdges) {
+                    if (smallest == null) smallest = e;
+                    else {
+                        if (e.energy < smallest.energy) smallest = e;
+                    }
+                }
+                if (!horizontalEdges.isEmpty()) horizontalEdges.remove(smallest);
+            }
         }
     }
 
     // unit testing (optional)
     public static void main(String[] args) {
 
-        int width = 6;
-        int height = 6;
+        int width = 5;
+        int height = 5;
 
         Picture p = new Picture(width, height);
 
@@ -420,13 +479,13 @@ public class SeamCarver {
 
         StdOut.println();
 
-        carver.removeHorizontalSeam(carver.findHorizontalSeam());
+        //carver.removeHorizontalSeam(carver.findHorizontalSeam());
         carver.removeVerticalSeam(carver.findVerticalSeam());
         StdOut.println("Width: " + carver.width());
         StdOut.println("Height: " + carver.height());
         StdOut.println();
 
-        carver.removeHorizontalSeam(carver.findHorizontalSeam());
+        //carver.removeHorizontalSeam(carver.findHorizontalSeam());
         carver.removeVerticalSeam(carver.findVerticalSeam());
         StdOut.println("Width: " + carver.width());
         StdOut.println("Height: " + carver.height());
