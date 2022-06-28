@@ -1,6 +1,12 @@
-import edu.princeton.cs.algs4.*;
+import edu.princeton.cs.algs4.Bag;
+import edu.princeton.cs.algs4.Picture;
+import edu.princeton.cs.algs4.Queue;
+import edu.princeton.cs.algs4.Stack;
+import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.StdRandom;
 
 import java.awt.Color;
+import java.util.Arrays;
 
 
 public class SeamCarver {
@@ -12,16 +18,14 @@ public class SeamCarver {
     private Picture mPicture;
     private Vertex[][] pixelGraph;
 
-    private double[] distTo;
-    private boolean[] visited;
+    private int mWidth;
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
         verifyObject(picture);
         mPicture = new Picture(picture);
+        mWidth = mPicture.width();
         pixelGraph = getEnergyMatrixFrom(picture);
-        distTo = new double[picture.height() * picture.width()];
-        visited = new boolean[picture.height() * picture.width()];
     }
 
     private Vertex[][] getEnergyMatrixFrom(Picture pic) {
@@ -75,16 +79,16 @@ public class SeamCarver {
     }
 
     private int col(int v) {
-        return v % mPicture.width();
+        return v % mWidth;
     }
 
     private int row(int v) {
-        return v / mPicture.width();
+        return v / mWidth;
     }
 
     // current picture
     public Picture picture() {
-        return mPicture;
+        return new Picture(mPicture);
     }
 
     // width of current picture
@@ -106,8 +110,9 @@ public class SeamCarver {
 
     // sequence of indices for horizontal seam
     public int[] findHorizontalSeam() {
-        distTo = new double[mPicture.height() * mPicture.width()];
-        visited = new boolean[mPicture.height() * mPicture.width()];
+        double[] distTo = new double[mPicture.width() * mPicture.height()];
+        Arrays.fill(distTo, Double.POSITIVE_INFINITY);
+
         int[] seamHorizontalCoordinates = new int[0];
         double totalEnergy = -1.0;
 
@@ -116,7 +121,7 @@ public class SeamCarver {
         for (int s = 0; s < mPicture.height(); ++s) {
             Vertex source = pixelGraph[row(s * mPicture.width())][col(s * mPicture.width())];
 
-            seam = findSeam(source, false);
+            seam = findSeam(source, distTo, seam, false);
 
             double tempTotalEnergy = totalEnergyOf(seam);
 
@@ -135,22 +140,17 @@ public class SeamCarver {
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        distTo = new double[mPicture.height() * mPicture.width()];
-        visited = new boolean[mPicture.height() * mPicture.width()];
+        double[] distTo = new double[mPicture.width() * mPicture.height()];
+        Arrays.fill(distTo, Double.POSITIVE_INFINITY);
+
         int[] seamVerticalCoordinates = new int[0];
         double totalEnergy = -1.0;
 
-        Stack<Integer> seam;
+        Stack<Integer> seam = new Stack<>();
 
         for (int s = 0; s < mPicture.width(); ++s) {
 
-            seam = findSeam(pixelGraph[row(s)][col(s)], true);
-
-            /*StdOut.print("Source " + s + ": ");
-            for (int i : seam) {
-                StdOut.print(" " + i);
-            }
-            StdOut.println();*/
+            seam = findSeam(pixelGraph[row(s)][col(s)], distTo, seam, true);
 
             double tempTotalEnergy = totalEnergyOf(seam);
 
@@ -167,54 +167,50 @@ public class SeamCarver {
         return seamVerticalCoordinates;
     }
 
-    private Stack<Integer> findSeam(Vertex source, boolean isVertical) {
-        distTo = new double[mPicture.height() * mPicture.width()];
-        visited = new boolean[mPicture.height() * mPicture.width()];
+    private Stack<Integer> findSeam(Vertex source, double[] distTo, Stack<Integer> seam, boolean isVertical) {
 
-         MinPQ<Vertex> pQ = new MinPQ<>();
 
-         pQ.insert(source);
+         Queue<Vertex> queue = new Queue<>();
+
+         queue.enqueue(source);
          distTo[source.position] = source.energy;
-         visited[source.position] = true;
          source.parent = null;
 
          Vertex smallestEnd = null;
 
-         while (!pQ.isEmpty()) {
-             Vertex v = pQ.delMin();
+         while (!queue.isEmpty()) {
+             Vertex v = queue.dequeue();
              if (v.getVertices(isVertical).isEmpty()) {
                  if (smallestEnd == null) smallestEnd = v;
                  else if (distTo[v.position] < distTo[smallestEnd.position]) smallestEnd = v;
-             } else insertNeighbours(v, pQ, isVertical);
+             } else insertNeighbours(v, queue, distTo, isVertical);
          }
 
-         Stack<Integer> seam = new Stack<>();
-         StdOut.print("Edge to: ");
+        if (smallestEnd != null)
+            seam = new Stack<>();
          for (Vertex x = smallestEnd; x != null; x = x.parent) {
-             StdOut.print(", " + x.position);
              seam.push(x.position);
          }
-         StdOut.println();
          return seam;
     }
 
-    private void insertNeighbours(Vertex v, MinPQ<Vertex> pQ, boolean isVertical) {
+    private void insertNeighbours(Vertex v, Queue<Vertex> pQ, double[] distTo, boolean isVertical) {
         if (isVertical) {
             for (int n : v.verticalVertices) {
-                if (!visited[n]) {
-                    pQ.insert(pixelGraph[row(n)][col(n)]);
-                    pixelGraph[row(n)][col(n)].parent = v;
-                    distTo[n] = distTo[v.position] + pixelGraph[row(n)][col(n)].energy;
-                    visited[n] = true;
+                Vertex nthVertex = pixelGraph[row(n)][col(n)];
+                if (distTo[n] > distTo[v.position] + nthVertex.energy) {
+                    pQ.enqueue(nthVertex);
+                    nthVertex.parent = v;
+                    distTo[n] = distTo[v.position] + nthVertex.energy;
                 }
             }
         } else {
             for (int n : v.horizontalVertices) {
-                if (!visited[n]) {
-                    pQ.insert(pixelGraph[row(n)][col(n)]);
-                    pixelGraph[row(n)][col(n)].parent = v;
-                    distTo[n] = distTo[v.position] + pixelGraph[row(n)][col(n)].energy;
-                    visited[n] = true;
+                Vertex nthVertex = pixelGraph[row(n)][col(n)];
+                if (distTo[n] > distTo[v.position] + nthVertex.energy) {
+                    pQ.enqueue(nthVertex);
+                    nthVertex.parent = v;
+                    distTo[n] = distTo[v.position] + nthVertex.energy;
                 }
             }
         }
@@ -230,59 +226,23 @@ public class SeamCarver {
         int[] coordinates = new int[vertices.size()];
         if (vertical) {
             int x = 0;
-            while (!vertices.isEmpty()) {
-                coordinates[x] = col(vertices.pop());
-                ++x;
+            for (int v : vertices) {
+                coordinates[x++] = col(v);
             }
         } else {
             int x = 0;
-            while (!vertices.isEmpty()) {
-                coordinates[x] = row(vertices.pop());
-                ++x;
+            for (int v : vertices) {
+                coordinates[x++] = row(v);
             }
         }
         return coordinates;
     }
 
-    /*private Integer getChildWithSmallestEnergy(Vertex p, boolean vertical) {
-        Integer smallest = null;
-        if (vertical) {
-            for (int i = 0; i < visitCounts[p.position]; ++i) {
-                for (int e : p.verticalVertices) {
-                    if (smallest == null) smallest = e;
-                    else {
-                        if (energy[row(e)][col(e)] < energy[row(smallest)][col(smallest)] && e != smallest) {
-                            smallest = e;
-                        }
-                    }
-                }
-            }
-            if (visitCounts[p.position] == 3 && row(p.position) + 1 == mPicture.height() - 1) {
-                return p.position + mPicture.width();
-            }
-        } else {
-            for (int i = 0; i < visitCounts[p.position]; ++i) {
-                for (int e : p.horizontalVertices) {
-                    if (smallest == null) smallest = e;
-                    else {
-                        if (energy[row(e)][col(e)] < energy[row(smallest)][col(smallest)] && e != smallest) {
-                            smallest = e;
-                        }
-                    }
-                }
-            }
-            if (visitCounts[p.position] == 3 && col(p.position) + 1 == mPicture.width() - 1) {
-                return p.position + 1;
-            }
-        }
-        return smallest;
-    }*/
-
     // remove horizontal seam from current picture
     public void removeHorizontalSeam(int[] seam) {
         verifyObject(seam);
         verifyHorizontalSeam(seam);
-        verifyPictureDimension(mPicture.width());
+        verifyPictureDimension(mPicture.height());
 
         int newWidth = mPicture.width();
         int newHeight = mPicture.height() - 1;
@@ -299,6 +259,7 @@ public class SeamCarver {
             }
         }
         mPicture = pic;
+        mWidth = mPicture.width();
         pixelGraph = getEnergyMatrixFrom(pic);
     }
 
@@ -306,7 +267,7 @@ public class SeamCarver {
     public void removeVerticalSeam(int[] seam) {
         verifyObject(seam);
         verifyVerticalSeam(seam);
-        verifyPictureDimension(mPicture.height());
+        verifyPictureDimension(mPicture.width());
         int width = mPicture.width() - 1;
         int height = mPicture.height();
 
@@ -325,6 +286,7 @@ public class SeamCarver {
             }
         }
         mPicture = pic;
+        this.mWidth = pic.width();
         pixelGraph = getEnergyMatrixFrom(pic);
     }
 
@@ -337,14 +299,27 @@ public class SeamCarver {
     }
 
     private void verifyEachHorizontal(int[] seam) {
-        for (int s : seam) {
-            if (s < 0 || s > mPicture.width()) throw new IllegalArgumentException();
+        int prev = -1;
+        for (int node : seam) {
+            if (node < 0 || node >= mPicture.height()) throw new IllegalArgumentException();
+            if (prev == -1) prev = node;
+            else {
+                if (node == prev + 1 || node == prev || node == prev - 1) prev = node;
+                else throw new IllegalArgumentException();
+            }
         }
     }
 
     private void verifyEachVertical(int[] seam) {
-        for (int s : seam) {
-            if (s < 0 || s > mPicture.height()) throw new IllegalArgumentException();
+        int prev = -1;
+        for (int node : seam) {
+            if (node < 0 || node >= mPicture.width()) throw new IllegalArgumentException();
+            if (prev == -1) prev = node;
+            else {
+                if (node == prev + 1 || node == prev || node == prev - 1) prev = node;
+                else throw new IllegalArgumentException();
+            }
+
         }
     }
 
@@ -359,21 +334,20 @@ public class SeamCarver {
     }
 
     private void verifyColumn(int x) {
-        if (x < 0 || x > mPicture.width()) throw new IllegalArgumentException();
+        if (x < 0 || x >= mPicture.width()) throw new IllegalArgumentException();
     }
 
     private void verifyRow(int y) {
-        if (y < 0 || y > mPicture.height()) throw new IllegalArgumentException();
+        if (y < 0 || y >= mPicture.height()) throw new IllegalArgumentException();
     }
 
-    private class Vertex implements Comparable<Vertex> {
+    private class Vertex {
 
         public final int position;
         public Bag<Integer> verticalVertices = new Bag<>();
         public Bag<Integer> horizontalVertices = new Bag<>();
 
         public Vertex parent = null;
-
         public double energy;
 
         public Vertex(int p) {
@@ -449,11 +423,6 @@ public class SeamCarver {
 
                 default: throw new IllegalArgumentException();
             }
-        }
-
-        @Override
-        public int compareTo(Vertex v) {
-            return Double.compare(energy, v.energy);
         }
     }
 
