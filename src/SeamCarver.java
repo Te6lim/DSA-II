@@ -6,41 +6,42 @@ import edu.princeton.cs.algs4.StdOut;
 import edu.princeton.cs.algs4.StdRandom;
 
 import java.awt.Color;
+import java.util.Arrays;
 
 
 public class SeamCarver {
 
+    private static final double EDGE_ENERGY = 1000.0;
     private Picture mPicture;
-    private Pixel[][] pixelGraph;
 
     private int mWidth;
-
-    private int[] verticalSeam = new int[0];
-    private int[] horizontalSeam = new int[0];
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
         verifyObject(picture);
         mPicture = new Picture(picture);
         mWidth = mPicture.width();
-        pixelGraph = getEnergyMatrixFrom(picture);
     }
 
     private Pixel[][] getEnergyMatrixFrom(Picture pic) {
         Pixel[][] matrix = new Pixel[pic.height()][pic.width()];
 
         Pixel pixel;
+        Color color;
 
         for (int v = 0; v < pic.height() * pic.width(); ++v) {
-            Color color = pic.get(col(v), row(v));
-            pixel = matrix[row(v)][col(v)] = new Pixel(v);
+            color = pic.get(col(v), row(v));
+            pixel = new Pixel(v);
+            pixel.setVerticalVertices(pic.width(), pic.height());
+            pixel.setHorizontalVertices(pic.width(), pic.height());
             pixel.red = color.getRed();
             pixel.green = color.getGreen();
             pixel.blue = color.getBlue();
+            matrix[row(v)][col(v)] = pixel;
         }
 
         for (int v = 0; v < pic.height() * pic.width(); ++v) {
-            calculateEnergy(matrix[row(v)][col(v)], matrix);
+            matrix[row(v)][col(v)].calculateEnergy(matrix);
         }
 
         return matrix;
@@ -73,85 +74,87 @@ public class SeamCarver {
     public double energy(int x, int y) {
         verifyColumn(x);
         verifyRow(y);
-        return pixelGraph[y][x].energy;
+        int position = y * mPicture.width() + x;
+        return calculateEnergy(position, mPicture);
     }
 
     // sequence of indices for horizontal seam
     public int[] findHorizontalSeam() {
+        int[] seamHorizontalCoordinates = new int[0];
+        double totalEnergy = -1.0;
 
-        if (horizontalSeam.length == 0) {
-            int[] seamHorizontalCoordinates = new int[0];
-            double totalEnergy = -1.0;
+        Pixel[][] pixelGraph = getEnergyMatrixFrom(mPicture);
 
-            Stack<Integer> seam = new Stack<>();
+        Stack<Integer> seam = new Stack<>();
+        double[] distTo = new double[mPicture.height() * mPicture.width()];
+        Arrays.fill(distTo, Double.POSITIVE_INFINITY);
 
-            for (int s = 0; s < mPicture.height(); s += 2) {
-                Pixel source = pixelGraph[row(s * mPicture.width())][col(s * mPicture.width())];
+        for (int s = 0; s < mPicture.height(); s += 2) {
+            Pixel source = pixelGraph[row(s * mPicture.width())][col(s * mPicture.width())];
 
-                seam = findSeam(source, seam, false);
+            seam = findSeam(pixelGraph, source, seam, distTo, false);
 
-                double tempTotalEnergy = totalEnergyOf(seam);
+            double tempTotalEnergy = totalEnergyOf(pixelGraph, seam);
 
-                if (totalEnergy < 0) {
+            if (totalEnergy < 0) {
+                totalEnergy = tempTotalEnergy;
+                seamHorizontalCoordinates = extractCoordinatesFrom(seam, false);
+            } else {
+                if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
                     seamHorizontalCoordinates = extractCoordinatesFrom(seam, false);
-                } else {
-                    if (tempTotalEnergy < totalEnergy) {
-                        totalEnergy = tempTotalEnergy;
-                        seamHorizontalCoordinates = extractCoordinatesFrom(seam, false);
-                    }
                 }
             }
-            horizontalSeam = seamHorizontalCoordinates;
-            return seamHorizontalCoordinates;
-        } else return horizontalSeam.clone();
+        }
+        return seamHorizontalCoordinates;
     }
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        if (verticalSeam.length == 0) {
-            int[] seamVerticalCoordinates = new int[0];
-            double totalEnergy = -1.0;
+        int[] seamVerticalCoordinates = new int[0];
+        double totalEnergy = -1.0;
 
-            Stack<Integer> seam = new Stack<>();
+        Pixel[][] pixelGraph = getEnergyMatrixFrom(mPicture);
 
-            for (int s = 0; s < mPicture.width(); s += 2) {
+        Stack<Integer> seam = new Stack<>();
+        double[] distTo = new double[mPicture.height() * mPicture.width()];
+        Arrays.fill(distTo, Double.POSITIVE_INFINITY);
 
-                seam = findSeam(pixelGraph[row(s)][col(s)], seam, true);
+        for (int s = 0; s < mPicture.width(); s++) {
 
-                double tempTotalEnergy = totalEnergyOf(seam);
+            seam = findSeam(pixelGraph, pixelGraph[row(s)][col(s)], seam, distTo, true);
 
-                if (totalEnergy < 0) {
+            double tempTotalEnergy = totalEnergyOf(pixelGraph, seam);
+
+            if (totalEnergy < 0) {
+                totalEnergy = tempTotalEnergy;
+                seamVerticalCoordinates = extractCoordinatesFrom(seam, true);
+            } else {
+                if (tempTotalEnergy < totalEnergy) {
                     totalEnergy = tempTotalEnergy;
                     seamVerticalCoordinates = extractCoordinatesFrom(seam, true);
-                } else {
-                    if (tempTotalEnergy < totalEnergy) {
-                        totalEnergy = tempTotalEnergy;
-                        seamVerticalCoordinates = extractCoordinatesFrom(seam, true);
-                    }
                 }
             }
-            verticalSeam = seamVerticalCoordinates;
-            return seamVerticalCoordinates;
-        } else return verticalSeam.clone();
+        }
+        return seamVerticalCoordinates;
     }
 
-    private Stack<Integer> findSeam(Pixel source, Stack<Integer> seam, boolean isVertical) {
+    private Stack<Integer> findSeam(Pixel[][] pixelGraph, Pixel source, Stack<Integer> seam, double[] distTo, boolean isVertical) {
 
          Queue<Pixel> queue = new Queue<>();
 
          queue.enqueue(source);
-         source.setDistToSource(source.energy, isVertical);
+         distTo[source.position] = source.energy;
          source.parent = -1;
 
          Pixel smallestEnd = null;
 
          while (!queue.isEmpty()) {
              Pixel v = queue.dequeue();
-             if (getVertices(v, mPicture, isVertical).isEmpty()) {
+             if (v.getVertices(isVertical).isEmpty()) {
                  if (smallestEnd == null) smallestEnd = v;
-                 else if (v.getDistToSource(isVertical) < smallestEnd.getDistToSource(isVertical)) smallestEnd = v;
-             } else insertNeighbours(v, queue, isVertical);
+                 else if (distTo[v.position] < distTo[smallestEnd.position]) smallestEnd = v;
+             } else insertNeighbours(pixelGraph, v, queue, distTo, isVertical);
          }
 
         if (smallestEnd != null) {
@@ -163,20 +166,18 @@ public class SeamCarver {
          return seam;
     }
 
-    private void insertNeighbours(Pixel v, Queue<Pixel> pQ, boolean isVertical) {
-        Bag<Integer> vertices = getVertices(v, mPicture, isVertical);
-        for (int n : vertices) {
-            //StdOut.print(n + ", ");
+    private void insertNeighbours(Pixel[][] pixelGraph, Pixel v, Queue<Pixel> pQ, double[] distTo, boolean isVertical) {
+        for (int n : v.getVertices(isVertical)) {
             Pixel nthPixel = pixelGraph[row(n)][col(n)];
-            if (nthPixel.getDistToSource(isVertical) > v.getDistToSource(isVertical) + nthPixel.energy) {
+            if (distTo[n] > distTo[v.position] + nthPixel.energy) {
                 pQ.enqueue(nthPixel);
                 nthPixel.parent = v.position;
-                nthPixel.setDistToSource(v.getDistToSource(isVertical) + nthPixel.energy, isVertical);
+                distTo[n] = distTo[v.position] + nthPixel.energy;
             }
         }
     }
 
-    private double totalEnergyOf(Stack<Integer> seam) {
+    private double totalEnergyOf(Pixel[][] pixelGraph, Stack<Integer> seam) {
         double total = 0.0;
         for (int v : seam) total += pixelGraph[row(v)][col(v)].energy;
         return total;
@@ -213,16 +214,17 @@ public class SeamCarver {
             boolean foundCrack = false;
             for (int r = 0; r < mPicture.height(); ++r) {
                 if (r != seam[c]) {
-                    if (foundCrack) pic.set(c, r - 1, mPicture.get(c, r));
-                    else pic.set(c, r, mPicture.get(c, r));
+                    if (foundCrack) {
+                        pic.set(c, r - 1, mPicture.get(c, r));
+                    }
+                    else {
+                        pic.set(c, r, mPicture.get(c, r));
+                    }
                 } else foundCrack = true;
             }
         }
 
         mPicture = pic;
-        pixelGraph = getEnergyMatrixFrom(pic);
-        verticalSeam = new int[0];
-        horizontalSeam = new int[0];
     }
 
     // remove vertical seam from current picture
@@ -240,85 +242,49 @@ public class SeamCarver {
             boolean foundCrack = false;
             for (int c = 0; c < mPicture.width(); ++c) {
                 if (c != seam[r]) {
-                    if (foundCrack) pic.set(c - 1, r, mPicture.get(c, r));
-                    else pic.set(c, r, mPicture.get(c, r));
+                    if (foundCrack) {
+                        pic.set(c - 1, r, mPicture.get(c, r));
+                    }
+                    else {
+                        pic.set(c, r, mPicture.get(c, r));
+                    }
                 } else foundCrack = true;
             }
         }
 
         mPicture = pic;
-        pixelGraph = getEnergyMatrixFrom(pic);
-        verticalSeam = new int[0];
-        horizontalSeam = new int[0];
     }
 
-    private void calculateEnergy(Pixel pixel, Pixel[][] graph) {
-        if (pixel.energy == 0f) {
-            if (col(pixel.position) == 0 || col(pixel.position) == graph[0].length - 1
-                    || row(pixel.position) == 0 || row(pixel.position) == graph.length - 1) {
-                pixel.energy = 1000.0;
-                return;
-            }
-            double deltaXSquared = getDeltaXSquared(pixel, graph);
-            double deltaYSquared = getDeltaYSquared(pixel, graph);
-            pixel.energy = Math.sqrt(deltaXSquared + deltaYSquared);
+    private double calculateEnergy(int position, Picture pic) {
+        if (col(position) == 0 || col(position) == pic.width() - 1
+                || row(position) == 0 || row(position) == pic.height() - 1) {
+            return EDGE_ENERGY;
         }
+        double deltaXSquared = getDeltaXSquared(position, pic);
+        double deltaYSquared = getDeltaYSquared(position, pic);
+        return Math.sqrt(deltaXSquared + deltaYSquared);
     }
 
-    private double getDeltaXSquared(Pixel pixel, Pixel[][] graph) {
-        int col = col(pixel.position);
-        int row = row(pixel.position);
+    private double getDeltaXSquared(int position, Picture pic) {
+        int col = col(position);
+        int row = row(position);
 
-        int red = graph[row][col + 1].red - graph[row][col - 1].red;
-        int green = graph[row][col + 1].green - graph[row][col - 1].green;
-        int blue = graph[row][col + 1].blue - graph[row][col - 1].blue;
+        int red = pic.get(col + 1, row).getRed() - pic.get(col - 1, row).getRed();
+        int green = pic.get(col + 1, row).getGreen() - pic.get(col - 1, row).getGreen();
+        int blue = pic.get(col + 1, row).getBlue() - pic.get(col - 1, row).getBlue();
 
         return Math.pow(red, 2) + Math.pow(green, 2) + Math.pow(blue, 2);
     }
 
-    private double getDeltaYSquared(Pixel pixel, Pixel[][] graph) {
-        int col = col(pixel.position);
-        int row = row(pixel.position);
+    private double getDeltaYSquared(int position, Picture pic) {
+        int col = col(position);
+        int row = row(position);
 
-        int red = graph[row + 1][col].red - graph[row - 1][col].red;
-        int green = graph[row + 1][col].green - graph[row - 1][col].green;
-        int blue = graph[row + 1][col].blue - graph[row - 1][col].blue;
+        int red = pic.get(col, row + 1).getRed() - pic.get(col, row - 1).getRed();
+        int green = pic.get(col, row + 1).getGreen() - pic.get(col, row - 1).getGreen();
+        int blue = pic.get(col, row + 1).getBlue() - pic.get(col, row - 1).getBlue();
 
         return Math.pow(red, 2) + Math.pow(green, 2) + Math.pow(blue, 2);
-    }
-
-    private Bag<Integer> getHorizontalVertices(Pixel pixel, Picture pic) {
-        Bag<Integer> vertices = new Bag<>();
-        if (col(pixel.position) + 1 < pic.width() && row(pixel.position) + 1 < pic.height()) {
-            vertices.add(pixel.position + (pic.width() + 1));
-        }
-        if (col(pixel.position) + 1 < pic.width()) {
-            vertices.add(pixel.position + 1);
-        }
-        if (row(pixel.position) - 1 >= 0 && col(pixel.position) + 1 < pic.width()) {
-            vertices.add((pixel.position - pic.width()) + 1);
-        }
-        return vertices;
-    }
-
-    private Bag<Integer> getVerticalVertices(Pixel pixel, Picture pic) {
-        Bag<Integer> vertices = new Bag<>();
-        if (col(pixel.position) - 1 >= 0 && row(pixel.position) + 1 < pic.height()) {
-            vertices.add(pixel.position + (pic.width() - 1));
-        }
-
-        if (row(pixel.position) + 1 < pic.height()) {
-            vertices.add(pixel.position + pic.width());
-        }
-        if (col(pixel.position) + 1 < pic.width() && row(pixel.position) + 1 < pic.height()) {
-            vertices.add(pixel.position + pic.width() + 1);
-        }
-        return vertices;
-    }
-
-    private Bag<Integer> getVertices(Pixel pixel, Picture pic, boolean isVertical) {
-        if (isVertical) return getVerticalVertices(pixel, pic);
-        else return getHorizontalVertices(pixel, pic);
     }
 
     private void verifyPictureDimension(int dimension) {
@@ -374,10 +340,10 @@ public class SeamCarver {
 
     private class Pixel {
 
-        public int position;
+        public Bag<Integer> verticalLinks = new Bag<>();
+        public Bag<Integer> horizontalLinks = new Bag<>();
 
-        double verticalDistToSource = Double.POSITIVE_INFINITY;
-        double horizontalDistToSource = Double.POSITIVE_INFINITY;
+        public int position;
 
         public int red;
         public int green;
@@ -391,14 +357,75 @@ public class SeamCarver {
             position = p;
         }
 
-        public double getDistToSource(boolean isVertical) {
-            if (isVertical) return verticalDistToSource;
-            else return horizontalDistToSource;
+        public void setHorizontalVertices(int width, int height) {
+            Bag<Integer> vertices = new Bag<>();
+            if (col(position) + 1 < width && row(position) + 1 < height) {
+                vertices.add(position + (width + 1));
+            }
+            if (col(position) + 1 < width) {
+                vertices.add(position + 1);
+            }
+            if (row(position) - 1 >= 0 && col(position) + 1 < width) {
+                vertices.add((position - width) + 1);
+            }
+
+            horizontalLinks = vertices;
         }
 
-        public void setDistToSource(double value, boolean isVertical) {
-            if (isVertical) verticalDistToSource = value;
-            else horizontalDistToSource = value;
+        public void setVerticalVertices(int width, int height) {
+            Bag<Integer> vertices = new Bag<>();
+            if (col(position) - 1 >= 0 && row(position) + 1 < height) {
+                vertices.add(position + (width - 1));
+            }
+
+            if (row(position) + 1 < height) {
+                vertices.add(position + width);
+            }
+            if (col(position) + 1 < width && row(position) + 1 < height) {
+                vertices.add(position + width + 1);
+            }
+            verticalLinks = vertices;
+        }
+
+        public Bag<Integer> getVertices(boolean isVertical) {
+            if (isVertical) {
+                return verticalLinks;
+            }
+            else {
+                return horizontalLinks;
+            }
+        }
+
+        public void calculateEnergy(Pixel[][] graph) {
+            if (col(position) == 0 || col(position) == graph[0].length - 1
+                    || row(position) == 0 || row(position) == graph.length - 1) {
+                energy = EDGE_ENERGY;
+                return;
+            }
+            double deltaXSquared = getDeltaXSquared(graph);
+            double deltaYSquared = getDeltaYSquared(graph);
+            energy = Math.sqrt(deltaXSquared + deltaYSquared);
+        }
+
+        private double getDeltaXSquared(Pixel[][] graph) {
+            int col = col(position);
+            int row = row(position);
+            int r = graph[row][col + 1].red - graph[row][col - 1].red;
+            int g = graph[row][col + 1].green - graph[row][col - 1].green;
+            int b = graph[row][col + 1].blue - graph[row][col - 1].blue;
+
+            return Math.pow(r, 2) + Math.pow(g, 2) + Math.pow(b, 2);
+        }
+
+        private double getDeltaYSquared(Pixel[][] graph) {
+            int col = col(position);
+            int row = row(position);
+
+            int r = graph[row + 1][col].red - graph[row - 1][col].red;
+            int g = graph[row + 1][col].green - graph[row - 1][col].green;
+            int b = graph[row + 1][col].blue - graph[row - 1][col].blue;
+
+            return Math.pow(r, 2) + Math.pow(g, 2) + Math.pow(b, 2);
         }
     }
 
@@ -421,12 +448,12 @@ public class SeamCarver {
 
         SeamCarver carver = new SeamCarver(p);
 
-        for (int r = 0; r < p.height(); ++r) {
+        /* for (int r = 0; r < p.height(); ++r) {
             for (int c = 0; c < p.width(); ++c) {
                 StdOut.print("[" + carver.pixelGraph[r][c].energy + "]");
             }
             StdOut.println();
-        }
+        }*/
 
         int[] verticalSeam = carver.findVerticalSeam();
         int[] horizontalSeam = carver.findHorizontalSeam();
@@ -447,15 +474,28 @@ public class SeamCarver {
 
         StdOut.println();
 
+        int[] seam = carver.findVerticalSeam();
         carver.removeHorizontalSeam(carver.findHorizontalSeam());
-
         carver.removeVerticalSeam(carver.findVerticalSeam());
 
         StdOut.println("Width: " + carver.width());
         StdOut.println("Height: " + carver.height());
-
         StdOut.println();
 
+        /* for (int r = 0; r < carver.mPicture.height(); ++r) {
+            for (int c = 0; c < carver.mPicture.width(); ++c) {
+                StdOut.print("[" + carver.pixelGraph[r][c].energy + "]");
+            }
+            StdOut.println();
+        }*/
+
+
+        seam = carver.findVerticalSeam();
+        StdOut.println("seam size: " + seam.length);
+        for (int i = 0; i < seam.length; ++i) {
+            if (i + 1 < seam.length) StdOut.print(seam[i] + "->");
+            else StdOut.println(seam[i]);
+        }
         carver.removeHorizontalSeam(carver.findHorizontalSeam());
         carver.removeVerticalSeam(carver.findVerticalSeam());
         StdOut.println("Width: " + carver.width());
